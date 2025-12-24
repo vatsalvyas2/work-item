@@ -8,7 +8,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import type { FilterPriority, FilterStatus, TaskStatus } from "@/lib/types";
+import type { FilterPriority, FilterStatus } from "@/lib/types";
 
 interface FilterControlsProps {
   statusFilter: FilterStatus;
@@ -64,6 +64,7 @@ export function FilterControls({
             <SelectItem value="low">Low</SelectItem>
             <SelectItem value="medium">Medium</SelectItem>
             <SelectItem value="high">High</SelectItem>
+            <SelectItem value="none">None</SelectItem>
           </SelectContent>
         </Select>
       </div>

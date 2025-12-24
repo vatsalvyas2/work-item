@@ -40,7 +40,7 @@ export type Epic = {
 export type Subtask = {
     id: string;
     title: string;
-    status: TaskStatus;
+    status: 'To Do' | 'Done';
 }
 
 export type Task = {

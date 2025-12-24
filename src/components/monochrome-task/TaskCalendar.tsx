@@ -42,9 +42,11 @@ export function TaskCalendar({ tasks, onTaskSelect }: TaskCalendarProps) {
   const getTaskColor = (status: Task['status'], dueDate: Date | undefined) => {
     if (status === 'Done') return 'bg-green-200 text-green-800';
     if (status === 'Cancelled') return 'bg-gray-200 text-gray-600';
-    if (dueDate && dueDate < new Date() && status !== 'Done' && status !== 'Cancelled') return 'bg-red-200 text-red-800';
+    if (dueDate && new Date(dueDate).setHours(0,0,0,0) < new Date().setHours(0,0,0,0) && status !== 'Done') return 'bg-red-200 text-red-800';
     if (status === 'In Progress') return 'bg-yellow-200 text-yellow-800';
-    return 'bg-gray-100 text-gray-700';
+    if (status === 'Under Review') return 'bg-purple-200 text-purple-800';
+    if (status === 'On Hold') return 'bg-gray-300 text-gray-800';
+    return 'bg-blue-100 text-blue-700';
   };
 
   const nextMonth = () => {
@@ -90,7 +92,7 @@ export function TaskCalendar({ tasks, onTaskSelect }: TaskCalendarProps) {
                     getTaskColor(task.status, task.dueDate)
                   )}
                 >
-                  {task.description}
+                  {task.title}
                 </div>
               ))}
             </div>

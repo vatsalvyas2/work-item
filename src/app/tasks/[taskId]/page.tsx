@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Repeat, Plus, Send, Edit, Play, ShieldAlert, Flag, Check, X, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Repeat, Plus, Send, Edit, Play, ShieldAlert, Flag, Check, X, MessageSquare, Pause, Ban, History } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
@@ -114,13 +114,14 @@ export default function TaskDetailsPage() {
     return <div>Loading...</div>; // Or a proper skeleton loader
   }
 
-  const handleStatusChange = (newStatus: TaskStatus) => {
+  const handleStatusChange = (newStatus: TaskStatus, details?: string) => {
     if(!task) return;
     const timelineEntry: TimelineEntry = {
         id: `tl-${Date.now()}`,
         timestamp: new Date(),
         action: `Status changed to ${newStatus}`,
-        user: 'Current User'
+        user: 'Current User',
+        details: details
     };
     let updatedTask = {...task, status: newStatus, timeline: [...task.timeline, timelineEntry]};
     if (newStatus === 'In Progress' && !task.actualStartDate) {
@@ -165,24 +166,43 @@ export default function TaskDetailsPage() {
 
   const renderTaskActions = () => {
       if(!task) return null;
+
+      const baseActions = (
+        <div className="flex gap-2">
+            <Button variant="outline" onClick={() => handleStatusChange('On Hold')}><Pause className="mr-2"/> On Hold</Button>
+            <Button variant="destructive" onClick={() => handleStatusChange('Cancelled')}><Ban className="mr-2"/> Cancel</Button>
+        </div>
+      );
+
       switch(task.status) {
           case 'To Do':
-              return <Button onClick={() => handleStatusChange('In Progress')}><Play className="mr-2"/> Start Task</Button>
+              return <div className="flex gap-2">
+                <Button onClick={() => handleStatusChange('In Progress')}><Play className="mr-2"/> Start Task</Button>
+                {baseActions}
+              </div>
           case 'In Progress':
-              if (task.reviewRequired && isAssignee) {
-                  return <Button onClick={() => handleStatusChange('Under Review')}>Send for Review</Button>
-              }
-              return <Button onClick={() => handleStatusChange('Done')}><Check className="mr-2"/> Mark as Done</Button>
+              return <div className="flex gap-2">
+                  {task.reviewRequired && isAssignee && <Button onClick={() => handleStatusChange('Under Review')}>Send for Review</Button>}
+                  {!task.reviewRequired && <Button onClick={() => handleStatusChange('Done')}><Check className="mr-2"/> Mark as Done</Button>}
+                  {baseActions}
+              </div>
+          case 'On Hold':
+             return <div className="flex gap-2">
+                <Button onClick={() => handleStatusChange('In Progress')}><Play className="mr-2"/> Resume</Button>
+                <Button variant="destructive" onClick={() => handleStatusChange('Cancelled')}><Ban className="mr-2"/> Cancel</Button>
+            </div>
           case 'Under Review':
               if (isReviewer) {
                   return (
                       <div className="flex gap-2">
-                          <Button variant="outline" onClick={() => handleStatusChange('In Progress')}><X className="mr-2"/> Rework</Button>
+                          <Button variant="outline" onClick={() => handleStatusChange('In Progress', 'Rework requested')}><X className="mr-2"/> Rework</Button>
                           <Button onClick={() => handleStatusChange('Done')}><Check className="mr-2"/> Approve & Mark Done</Button>
                       </div>
                   );
               }
               return null;
+           case 'Done':
+           case 'Cancelled':
            default:
                return null;
       }
@@ -262,7 +282,7 @@ export default function TaskDetailsPage() {
                         <Tabs defaultValue="comments">
                             <TabsList>
                                 <TabsTrigger value="comments"><MessageSquare className="mr-2 h-4 w-4"/>Comments</TabsTrigger>
-                                <TabsTrigger value="history">History</TabsTrigger>
+                                <TabsTrigger value="history"><History className="mr-2 h-4 w-4"/>History</TabsTrigger>
                             </TabsList>
                             <TabsContent value="comments" className="mt-4">
                                 <div className="space-y-4">

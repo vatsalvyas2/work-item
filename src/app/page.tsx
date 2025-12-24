@@ -123,18 +123,21 @@ export default function Home() {
     }
 
     filtered.sort((a, b) => {
-      if (statusOrder[a.status] !== statusOrder[b.status]) {
-          return statusOrder[a.status] - statusOrder[b.status];
-      }
-      if (sortBy === "dueDate") {
-        if (!a.dueDate) return 1;
-        if (!b.dueDate) return -1;
-        return a.dueDate.getTime() - b.dueDate.getTime();
-      }
       if (sortBy === "priority") {
         const priorityOrder = { high: 0, medium: 1, low: 2, none: 3 };
-        return priorityOrder[a.priority] - priorityOrder[b.priority];
+        const priorityComparison = priorityOrder[a.priority] - priorityOrder[b.priority];
+        if (priorityComparison !== 0) return priorityComparison;
       }
+      
+      const statusComparison = statusOrder[a.status] - statusOrder[b.status];
+      if(statusComparison !== 0) return statusComparison;
+
+      if (a.dueDate && b.dueDate) {
+        return a.dueDate.getTime() - b.dueDate.getTime();
+      }
+      if (a.dueDate) return -1;
+      if (b.dueDate) return 1;
+
       return 0;
     });
 

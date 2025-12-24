@@ -22,14 +22,15 @@ const COLORS = {
 const PRIORITY_COLORS = {
     'low': '#86efac',
     'medium': '#facc15',
-    'high': '#f87171'
+    'high': '#f87171',
+    'none': '#d1d5db'
 };
 
 
 export function TaskDashboard({ tasks }: TaskDashboardProps) {
 
     const statusCounts = useMemo(() => {
-        const counts = { 'To Do': 0, 'In Progress': 0, 'On Hold': 0, 'Under Review': 0, 'Done': 0, 'Cancelled': 0 };
+        const counts: Record<Task['status'], number> = { 'To Do': 0, 'In Progress': 0, 'On Hold': 0, 'Under Review': 0, 'Done': 0, 'Cancelled': 0 };
         tasks.forEach(task => {
             counts[task.status]++;
         });
@@ -37,11 +38,11 @@ export function TaskDashboard({ tasks }: TaskDashboardProps) {
     }, [tasks]);
 
     const priorityCounts = useMemo(() => {
-        const counts = { 'low': 0, 'medium': 0, 'high': 0 };
+        const counts: Record<Task['priority'], number> = { 'low': 0, 'medium': 0, 'high': 0, 'none': 0 };
         tasks.forEach(task => {
             counts[task.priority]++;
         });
-        return Object.entries(counts).map(([name, value]) => ({ name, value, fill: PRIORITY_COLORS[name as keyof typeof PRIORITY_COLORS]}));
+        return Object.entries(counts).filter(([,value]) => value > 0).map(([name, value]) => ({ name, value, fill: PRIORITY_COLORS[name as keyof typeof PRIORITY_COLORS]}));
     }, [tasks]);
 
     const upcomingDeadlines = useMemo(() => {
@@ -96,7 +97,7 @@ export function TaskDashboard({ tasks }: TaskDashboardProps) {
                             fill="#8884d8"
                             dataKey="value"
                             nameKey="name"
-                            label={(props) => `${props.name}: ${props.value}`}
+                            label={(props) => `${props.name.charAt(0).toUpperCase() + props.name.slice(1)}: ${props.value}`}
                           >
                             {priorityCounts.map((entry, index) => (
                               <Cell key={`cell-${index}`} fill={entry.fill} />
@@ -129,7 +130,7 @@ export function TaskDashboard({ tasks }: TaskDashboardProps) {
                     <ul className="space-y-2">
                         {upcomingDeadlines.map(task => (
                             <li key={task.id} className="text-sm">
-                                {task.description} - <span className="font-semibold">{task.dueDate?.toLocaleDateString()}</span>
+                                {task.title} - <span className="font-semibold">{task.dueDate?.toLocaleDateString()}</span>
                             </li>
                         ))}
                          {upcomingDeadlines.length === 0 && <p className="text-sm text-muted-foreground">No upcoming deadlines.</p>}
