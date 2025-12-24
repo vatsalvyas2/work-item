@@ -1,7 +1,8 @@
+
 "use client";
 
 import { useState } from "react";
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, getMonth, getYear } from "date-fns";
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, getMonth, getYear, add, isWithinInterval } from "date-fns";
 import { Task } from "@/lib/types";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -28,14 +29,37 @@ export function TaskCalendar({ tasks, onTaskSelect }: TaskCalendarProps) {
     day = addDays(day, 1);
   }
 
-  const tasksByDate = tasks.reduce((acc, task) => {
-    if (task.dueDate) {
-      const dateKey = format(task.dueDate, "yyyy-MM-dd");
-      if (!acc[dateKey]) {
-        acc[dateKey] = [];
-      }
-      acc[dateKey].push(task);
-    }
+  const tasksByDate = days.reduce((acc, day) => {
+    const dateKey = format(day, "yyyy-MM-dd");
+    acc[dateKey] = tasks.filter(task => {
+        if (!task.dueDate) return false;
+
+        // One-time tasks
+        if (!task.recurrence) {
+            return isSameDay(task.dueDate, day);
+        }
+
+        // Recurring tasks
+        const { interval, endDate: recurrenceEndDate } = task.recurrence;
+        
+        // Check if the current day is within the recurrence period
+        if (day < task.dueDate || (recurrenceEndDate && day > recurrenceEndDate)) {
+            return false;
+        }
+
+        switch (interval) {
+            case 'daily':
+                return true;
+            case 'weekly':
+                return task.dueDate.getDay() === day.getDay();
+            case 'monthly':
+                return task.dueDate.getDate() === day.getDate();
+            case 'yearly':
+                return task.dueDate.getMonth() === day.getMonth() && task.dueDate.getDate() === day.getDate();
+            default:
+                return false;
+        }
+    });
     return acc;
   }, {} as Record<string, Task[]>);
 
@@ -88,9 +112,10 @@ export function TaskCalendar({ tasks, onTaskSelect }: TaskCalendarProps) {
                   key={task.id}
                   onClick={() => onTaskSelect(task)}
                   className={cn(
-                    "p-1 rounded-md text-xs cursor-pointer hover:opacity-80",
+                    "p-1 rounded-md text-xs cursor-pointer hover:opacity-80 truncate",
                     getTaskColor(task.status, task.dueDate)
                   )}
+                  title={task.title}
                 >
                   {task.title}
                 </div>

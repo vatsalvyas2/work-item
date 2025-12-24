@@ -75,3 +75,9 @@ export type Task = {
 
 export type FilterStatus = TaskStatus | 'all';
 export type FilterPriority = TaskPriority | 'all';
+
+// Database type
+export type AppDatabase = {
+  tasks: Task[];
+  epics: Epic[];
+};

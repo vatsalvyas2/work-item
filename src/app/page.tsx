@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { Task, FilterStatus, FilterPriority, TaskStatus, Subtask, Epic } from "@/lib/types";
 import { TaskForm } from "@/components/monochrome-task/TaskForm";
@@ -12,73 +12,17 @@ import { TaskDashboard } from "@/components/monochrome-task/TaskDashboard";
 import { TaskCalendar } from "@/components/monochrome-task/TaskCalendar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LayoutDashboard, List, Calendar } from "lucide-react";
+import { database } from "@/lib/db";
 
 
 export default function Home() {
-  const [tasks, setTasks] = useState<Task[]>([
-    {
-      id: "task-1",
-      title: "Set up the project structure",
-      taskType: "Task",
-      description: "Define the folder structure and install base dependencies.",
-      priority: "high",
-      status: "Done",
-      dueDate: new Date("2024-08-01T17:00:00"),
-      createdAt: new Date("2024-07-25"),
-      completedAt: new Date("2024-07-28"),
-      reviewRequired: false,
-      isCritical: true,
-      timeline: [{id: "t1-1", timestamp: new Date(), action: "Task Created", user: "Admin"}],
-      subtasks: [],
-      comments: [],
-      requester: "Vatsal Vyas",
-      reporter: "Vatsal Vyas"
-    },
-    {
-      id: "task-2",
-      title: "Create the main UI components",
-      taskType: "Story",
-      description: "Develop React components for the main layout, header, and footer.",
-      priority: "high",
-      status: "In Progress",
-      dueDate: new Date("2024-08-05T09:00:00"),
-      createdAt: new Date("2024-07-26"),
-      plannedStartDate: new Date("2024-07-28"),
-      actualStartDate: new Date("2024-07-29"),
-      duration: 40,
-      reviewRequired: true,
-      isCritical: false,
-      assignee: "Alex",
-      reviewer: "Bob",
-      timeline: [{id: "t2-1", timestamp: new Date(), action: "Task Created", user: "Admin"}],
-      subtasks: [],
-      comments: [{id: "c2-1", timestamp: new Date(), text: "Can I get more info?", user: "Alex"}],
-      requester: "Vatsal Vyas",
-      reporter: "Vatsal Vyas",
-      parentId: "epic-1",
-    },
-    {
-      id: "task-3",
-      title: "Implement task state management",
-      taskType: "Task",
-      description: "Use React hooks like useState and useReducer for state.",
-      priority: "medium",
-      status: "To Do",
-      dueDate: new Date("2024-08-10T14:00:00"),
-      createdAt: new Date("2024-07-27"),
-      reviewRequired: false,
-      isCritical: false,
-      timeline: [{id: "t3-1", timestamp: new Date(), action: "Task Created", user: "Admin"}],
-      subtasks: [],
-      comments: [],
-      requester: "Jane Doe",
-      reporter: "Jane Doe",
-      parentId: "epic-1",
-    },
-  ]);
-  const [epics, setEpics] = useState<Epic[]>([
-    { id: 'epic-1', title: 'User Management Feature', project: 'SCRUM-5', description: 'Epic for user management' }
-  ]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [epics, setEpics] = useState<Epic[]>([]);
+
+  useEffect(() => {
+    setTasks(database.getTasks());
+    setEpics(database.getEpics());
+  }, []);
 
   const router = useRouter();
 
@@ -94,7 +38,8 @@ export default function Home() {
       id: `epic-${Date.now()}`,
       project: "SCRUM-X" // Placeholder
     };
-    setEpics(prev => [newEpic, ...prev]);
+    database.addEpic(newEpic);
+    setEpics(database.getEpics());
   };
 
   const addTask = (task: Omit<Task, "id" | "status" | "createdAt" | "timeline" | "subtasks" | "comments" >) => {
@@ -108,7 +53,8 @@ export default function Home() {
       comments: [],
       requester: "Current User", // Placeholder
     };
-    setTasks((prev) => [newTask, ...prev]);
+    database.addTask(newTask);
+    setTasks(database.getTasks());
   };
   
   const handleSelectTask = (task: Task) => {

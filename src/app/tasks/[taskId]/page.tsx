@@ -16,74 +16,8 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
+import { database } from '@/lib/db';
 
-
-// Mock data - in a real app, this would come from a database or state management library
-const mockTasks: Task[] = [
-    {
-      id: "task-1",
-      title: "Set up the project structure",
-      taskType: "Task",
-      description: "Define the folder structure and install base dependencies.",
-      priority: "high",
-      status: "Done",
-      dueDate: new Date("2024-08-01T17:00:00"),
-      createdAt: new Date("2024-07-25"),
-      completedAt: new Date("2024-07-28"),
-      reviewRequired: false,
-      isCritical: true,
-      timeline: [{id: "t1-1", timestamp: new Date(), action: "Task Created", user: "Admin"}],
-      subtasks: [],
-      comments: [],
-      requester: "Vatsal Vyas",
-      reporter: "Vatsal Vyas"
-    },
-    {
-      id: "task-2",
-      title: "Create the main UI components",
-      taskType: "Story",
-      description: "Develop React components for the main layout, header, and footer.",
-      priority: "high",
-      status: "In Progress",
-      dueDate: new Date("2024-08-05T09:00:00"),
-      createdAt: new Date("2024-07-26"),
-      plannedStartDate: new Date("2024-07-28"),
-      actualStartDate: new Date("2024-07-29"),
-      duration: 40,
-      reviewRequired: true,
-      isCritical: false,
-      assignee: "Alex",
-      reviewer: "Bob",
-      timeline: [{id: "t2-1", timestamp: new Date(), action: "Task Created", user: "Admin"}],
-      subtasks: [],
-      comments: [{id: "c2-1", timestamp: new Date(), text: "Can I get more info?", user: "Alex"}],
-      requester: "Vatsal Vyas",
-      reporter: "Vatsal Vyas",
-      parentId: "epic-1",
-    },
-    {
-      id: "task-3",
-      title: "Implement task state management",
-      taskType: "Task",
-      description: "Use React hooks like useState and useReducer for state.",
-      priority: "medium",
-      status: "To Do",
-      dueDate: new Date("2024-08-10T14:00:00"),
-      createdAt: new Date("2024-07-27"),
-      reviewRequired: false,
-      isCritical: false,
-      timeline: [{id: "t3-1", timestamp: new Date(), action: "Task Created", user: "Admin"}],
-      subtasks: [],
-      comments: [],
-      requester: "Jane Doe",
-      reporter: "Jane Doe",
-      parentId: "epic-1",
-    },
-];
-
-const mockEpics: Epic[] = [
-    { id: 'epic-1', title: 'User Management Feature', project: 'SCRUM-5', description: 'Epic for user management' }
-]
 
 export default function TaskDetailsPage() {
   const params = useParams();
@@ -100,11 +34,11 @@ export default function TaskDetailsPage() {
   const isReviewer = true;
 
   useEffect(() => {
-    const foundTask = mockTasks.find(t => t.id === taskId);
+    const foundTask = database.getTask(taskId);
     if (foundTask) {
         setTask(foundTask);
         if (foundTask.parentId) {
-            const foundEpic = mockEpics.find(e => e.id === foundTask.parentId);
+            const foundEpic = database.getEpic(foundTask.parentId);
             setEpic(foundEpic || null);
         }
     }
@@ -123,13 +57,14 @@ export default function TaskDetailsPage() {
         user: 'Current User',
         details: details
     };
-    let updatedTask = {...task, status: newStatus, timeline: [...task.timeline, timelineEntry]};
+    let updatedTaskData = {...task, status: newStatus, timeline: [...task.timeline, timelineEntry]};
     if (newStatus === 'In Progress' && !task.actualStartDate) {
-        updatedTask.actualStartDate = new Date();
+        updatedTaskData.actualStartDate = new Date();
     }
     if (newStatus === 'Done') {
-        updatedTask.completedAt = new Date();
+        updatedTaskData.completedAt = new Date();
     }
+    const updatedTask = database.updateTask(task.id, updatedTaskData);
     setTask(updatedTask);
   };
   
@@ -141,7 +76,8 @@ export default function TaskDetailsPage() {
         text: comment,
         user: 'Current User' // placeholder
     }
-    setTask({...task, comments: [...task.comments, newComment]});
+    const updatedTask = database.updateTask(task.id, {...task, comments: [...task.comments, newComment]});
+    setTask(updatedTask);
     setComment('');
   }
 
@@ -152,7 +88,8 @@ export default function TaskDetailsPage() {
         title: subtaskTitle,
         status: 'To Do'
     };
-    setTask({...task, subtasks: [...task.subtasks, newSubtask]});
+    const updatedTask = database.updateTask(task.id, {...task, subtasks: [...task.subtasks, newSubtask]});
+    setTask(updatedTask);
     setSubtaskTitle('');
   }
 
@@ -161,7 +98,8 @@ export default function TaskDetailsPage() {
     const updatedSubtasks = task.subtasks.map(sub => 
         sub.id === subtaskId ? {...sub, status: sub.status === 'To Do' ? 'Done' : 'To Do'} : sub
     );
-    setTask({...task, subtasks: updatedSubtasks});
+    const updatedTask = database.updateTask(task.id, {...task, subtasks: updatedSubtasks});
+    setTask(updatedTask);
   }
 
   const renderTaskActions = () => {
