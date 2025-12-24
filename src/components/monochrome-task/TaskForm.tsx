@@ -54,6 +54,8 @@ const formSchema = z.object({
   parentId: z.string().optional(),
   assignee: z.string().optional(),
   reporter: z.string().optional(),
+  plannedStartDate: z.date().optional(),
+  duration: z.number().optional(),
 }).refine(data => {
     if (data.isRecurring) {
         return !!data.recurrence?.interval;
@@ -73,7 +75,6 @@ interface TaskFormProps {
 }
 
 export function TaskForm({ onTaskSubmit, onEpicSubmit, epics }: TaskFormProps) {
-  const [isRecurring, setIsRecurring] = useState(false);
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -96,13 +97,14 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics }: TaskFormProps) {
   });
 
   const taskType = form.watch("taskType");
+  const isRecurring = form.watch("isRecurring");
   
   const handleSubmit = (data: FormValues) => {
     if (data.taskType === 'Epic') {
         const { title, description } = data;
         onEpicSubmit({ title, description: description || '' });
     } else {
-        const { isRecurring, dueTime, ...taskData } = data;
+        const { dueTime, ...taskData } = data;
         
         let finalDueDate: Date | undefined = taskData.dueDate;
         if (taskData.dueDate && dueTime) {
@@ -111,19 +113,18 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics }: TaskFormProps) {
             finalDueDate.setHours(hours, minutes);
         }
 
-        if (!isRecurring) {
-            delete taskData.recurrence;
-        }
+        const firstDueDate = taskData.isRecurring ? taskData.plannedStartDate : finalDueDate;
 
         onTaskSubmit({
           ...taskData,
           taskType: taskData.taskType as TaskType,
-          dueDate: finalDueDate,
+          dueDate: firstDueDate,
+          recurrence: taskData.isRecurring ? data.recurrence : undefined,
+          duration: data.duration ? Number(data.duration) : undefined,
         });
     }
 
     form.reset();
-    setIsRecurring(false);
   };
 
   const isEpic = taskType === 'Epic';
@@ -218,6 +219,55 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics }: TaskFormProps) {
                       )}
                     />
                 </div>
+                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                     <FormField
+                        control={form.control}
+                        name="plannedStartDate"
+                        render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                            <FormLabel>Planned Start Date</FormLabel>
+                            <Popover>
+                            <PopoverTrigger asChild>
+                                <FormControl>
+                                <Button
+                                    variant={"outline"}
+                                    className={cn(
+                                    "w-full justify-start text-left font-normal h-10",
+                                    !field.value && "text-muted-foreground"
+                                    )}
+                                >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                </Button>
+                                </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                mode="single"
+                                selected={field.value}
+                                onSelect={field.onChange}
+                                initialFocus
+                                />
+                            </PopoverContent>
+                            </Popover>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="duration"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Duration (hours)</FormLabel>
+                            <FormControl>
+                                <Input type="number" placeholder="e.g. 8" {...field} onChange={e => field.onChange(parseInt(e.target.value))}/>
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <FormField
@@ -243,53 +293,57 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics }: TaskFormProps) {
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={form.control}
-                    name="dueDate"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>Due Date</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant={"outline"}
-                                className={cn(
-                                  "w-full justify-start text-left font-normal h-10",
-                                  !field.value && "text-muted-foreground"
-                                )}
-                              >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              initialFocus
+                  {!isRecurring && (
+                    <>
+                        <FormField
+                            control={form.control}
+                            name="dueDate"
+                            render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                                <FormLabel>Due Date</FormLabel>
+                                <Popover>
+                                <PopoverTrigger asChild>
+                                    <FormControl>
+                                    <Button
+                                        variant={"outline"}
+                                        className={cn(
+                                        "w-full justify-start text-left font-normal h-10",
+                                        !field.value && "text-muted-foreground"
+                                        )}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                    </Button>
+                                    </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar
+                                    mode="single"
+                                    selected={field.value}
+                                    onSelect={field.onChange}
+                                    initialFocus
+                                    />
+                                </PopoverContent>
+                                </Popover>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="dueTime"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Time</FormLabel>
+                                <FormControl>
+                                    <Input type="time" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
                             />
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                   <FormField
-                      control={form.control}
-                      name="dueTime"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Time</FormLabel>
-                          <FormControl>
-                            <Input type="time" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    </>
+                  )}
                 </div>
 
                 <FormField
@@ -305,7 +359,7 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics }: TaskFormProps) {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="none">No Epic</SelectItem>
+                          <SelectItem value="">No Epic</SelectItem>
                           {epics.map(epic => (
                             <SelectItem key={epic.id} value={epic.id}>{epic.title}</SelectItem>
                           ))}
@@ -321,7 +375,7 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics }: TaskFormProps) {
                       control={form.control}
                       name="reviewRequired"
                       render={({ field }) => (
-                        <FormItem className="flex flex-row items-center space-x-2">
+                        <FormItem className="flex flex-row items-center space-x-2 pt-5">
                           <FormControl>
                             <Switch
                               id="review-required"
@@ -337,7 +391,7 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics }: TaskFormProps) {
                       control={form.control}
                       name="isCritical"
                       render={({ field }) => (
-                        <FormItem className="flex flex-row items-center space-x-2">
+                        <FormItem className="flex flex-row items-center space-x-2 pt-5">
                           <FormControl>
                             <Switch
                               id="critical-task"
@@ -353,15 +407,12 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics }: TaskFormProps) {
                         control={form.control}
                         name="isRecurring"
                         render={({ field }) => (
-                            <FormItem className="flex flex-row items-center space-x-2">
+                            <FormItem className="flex flex-row items-center space-x-2 pt-5">
                                 <FormControl>
                                     <Switch
                                     id="recurring-task"
                                     checked={field.value}
-                                    onCheckedChange={(checked) => {
-                                        field.onChange(checked);
-                                        setIsRecurring(checked);
-                                    }}
+                                    onCheckedChange={field.onChange}
                                     />
                                 </FormControl>
                                 <FormLabel htmlFor="recurring-task">Recurring Task</FormLabel>
@@ -379,7 +430,7 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics }: TaskFormProps) {
                             render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Repeats</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <Select onValueChange={field.onChange} value={field.value}>
                                     <FormControl>
                                         <SelectTrigger>
                                             <SelectValue placeholder="Select interval" />
@@ -447,5 +498,3 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics }: TaskFormProps) {
     </Card>
   );
 }
-
-    
