@@ -27,7 +27,7 @@ const mockTasks: Task[] = [
       description: "Define the folder structure and install base dependencies.",
       priority: "high",
       status: "Done",
-      dueDate: new Date("2024-08-01"),
+      dueDate: new Date("2024-08-01T17:00:00"),
       createdAt: new Date("2024-07-25"),
       completedAt: new Date("2024-07-28"),
       reviewRequired: false,
@@ -45,7 +45,7 @@ const mockTasks: Task[] = [
       description: "Develop React components for the main layout, header, and footer.",
       priority: "high",
       status: "In Progress",
-      dueDate: new Date("2024-08-05"),
+      dueDate: new Date("2024-08-05T09:00:00"),
       createdAt: new Date("2024-07-26"),
       plannedStartDate: new Date("2024-07-28"),
       actualStartDate: new Date("2024-07-29"),
@@ -68,7 +68,7 @@ const mockTasks: Task[] = [
       description: "Use React hooks like useState and useReducer for state.",
       priority: "medium",
       status: "To Do",
-      dueDate: new Date("2024-08-10"),
+      dueDate: new Date("2024-08-10T14:00:00"),
       createdAt: new Date("2024-07-27"),
       reviewRequired: false,
       isCritical: false,
@@ -82,7 +82,7 @@ const mockTasks: Task[] = [
 ];
 
 const mockEpics: Epic[] = [
-    { id: 'epic-1', title: 'User Management Feature', project: 'SCRUM-5' }
+    { id: 'epic-1', title: 'User Management Feature', project: 'SCRUM-5', description: 'Epic for user management' }
 ]
 
 export default function TaskDetailsPage() {
@@ -373,7 +373,7 @@ export default function TaskDetailsPage() {
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="text-muted-foreground">Due Date</span>
-                            <span>{task.dueDate ? format(task.dueDate, 'PP') : 'Not set'}</span>
+                            <span>{task.dueDate ? format(task.dueDate, 'PPp') : 'Not set'}</span>
                         </div>
                          <div className="flex justify-between items-center">
                             <span className="text-muted-foreground">Duration</span>

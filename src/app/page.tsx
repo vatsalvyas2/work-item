@@ -3,7 +3,7 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import type { Task, FilterStatus, FilterPriority, TaskStatus, Subtask } from "@/lib/types";
+import type { Task, FilterStatus, FilterPriority, TaskStatus, Subtask, Epic } from "@/lib/types";
 import { TaskForm } from "@/components/monochrome-task/TaskForm";
 import { TaskList } from "@/components/monochrome-task/TaskList";
 import { FilterControls } from "@/components/monochrome-task/FilterControls";
@@ -23,7 +23,7 @@ export default function Home() {
       description: "Define the folder structure and install base dependencies.",
       priority: "high",
       status: "Done",
-      dueDate: new Date("2024-08-01"),
+      dueDate: new Date("2024-08-01T17:00:00"),
       createdAt: new Date("2024-07-25"),
       completedAt: new Date("2024-07-28"),
       reviewRequired: false,
@@ -41,7 +41,7 @@ export default function Home() {
       description: "Develop React components for the main layout, header, and footer.",
       priority: "high",
       status: "In Progress",
-      dueDate: new Date("2024-08-05"),
+      dueDate: new Date("2024-08-05T09:00:00"),
       createdAt: new Date("2024-07-26"),
       plannedStartDate: new Date("2024-07-28"),
       actualStartDate: new Date("2024-07-29"),
@@ -64,7 +64,7 @@ export default function Home() {
       description: "Use React hooks like useState and useReducer for state.",
       priority: "medium",
       status: "To Do",
-      dueDate: new Date("2024-08-10"),
+      dueDate: new Date("2024-08-10T14:00:00"),
       createdAt: new Date("2024-07-27"),
       reviewRequired: false,
       isCritical: false,
@@ -76,6 +76,10 @@ export default function Home() {
       parentId: "epic-1",
     },
   ]);
+  const [epics, setEpics] = useState<Epic[]>([
+    { id: 'epic-1', title: 'User Management Feature', project: 'SCRUM-5', description: 'Epic for user management' }
+  ]);
+
   const router = useRouter();
 
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
@@ -83,6 +87,15 @@ export default function Home() {
     "all"
   );
   const [sortBy, setSortBy] = useState<"dueDate" | "priority">("dueDate");
+
+  const addEpic = (epic: Omit<Epic, "id" | "project">) => {
+    const newEpic: Epic = {
+      ...epic,
+      id: `epic-${Date.now()}`,
+      project: "SCRUM-X" // Placeholder
+    };
+    setEpics(prev => [newEpic, ...prev]);
+  };
 
   const addTask = (task: Omit<Task, "id" | "status" | "createdAt" | "timeline" | "subtasks" | "comments" >) => {
     const newTask: Task = {
@@ -157,7 +170,11 @@ export default function Home() {
         </header>
 
         <section className="mb-8">
-          <TaskForm onSubmit={addTask} />
+          <TaskForm 
+            onTaskSubmit={addTask} 
+            onEpicSubmit={addEpic} 
+            epics={epics}
+          />
         </section>
 
         <Tabs defaultValue="list" className="w-full">

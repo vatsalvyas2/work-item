@@ -35,6 +35,7 @@ export type Epic = {
   id: string;
   title: string;
   project: string;
+  description: string;
 }
 
 export type Subtask = {
