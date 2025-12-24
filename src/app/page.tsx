@@ -13,6 +13,7 @@ import { TaskCalendar } from "@/components/monochrome-task/TaskCalendar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LayoutDashboard, List, Calendar } from "lucide-react";
 import { database } from "@/lib/db";
+import { EpicList } from "@/components/monochrome-task/EpicList";
 
 
 export default function Home() {
@@ -121,6 +122,10 @@ export default function Home() {
             onEpicSubmit={addEpic} 
             epics={epics}
           />
+        </section>
+
+        <section className="mb-8">
+            <EpicList epics={epics} />
         </section>
 
         <Tabs defaultValue="list" className="w-full">
