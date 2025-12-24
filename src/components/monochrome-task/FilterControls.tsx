@@ -8,13 +8,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import type { TaskPriority, TaskStatus } from "@/lib/types";
+import type { FilterPriority, FilterStatus, TaskStatus } from "@/lib/types";
 
 interface FilterControlsProps {
-  statusFilter: TaskStatus;
-  setStatusFilter: (status: TaskStatus) => void;
-  priorityFilter: TaskPriority | "all";
-  setPriorityFilter: (priority: TaskPriority | "all") => void;
+  statusFilter: FilterStatus;
+  setStatusFilter: (status: FilterStatus) => void;
+  priorityFilter: FilterPriority;
+  setPriorityFilter: (priority: FilterPriority) => void;
   sortBy: "dueDate" | "priority";
   setSortBy: (sortBy: "dueDate" | "priority") => void;
 }
@@ -33,15 +33,19 @@ export function FilterControls({
         <Label htmlFor="status-filter" className="text-sm">Filter by</Label>
         <Select
           value={statusFilter}
-          onValueChange={(value) => setStatusFilter(value as TaskStatus)}
+          onValueChange={(value) => setStatusFilter(value as FilterStatus)}
         >
           <SelectTrigger id="status-filter" className="w-[150px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="incomplete">Incomplete</SelectItem>
-            <SelectItem value="completed">Completed</SelectItem>
+            <SelectItem value="To Do">To Do</SelectItem>
+            <SelectItem value="In Progress">In Progress</SelectItem>
+            <SelectItem value="On Hold">On Hold</SelectItem>
+            <SelectItem value="Under Review">Under Review</SelectItem>
+            <SelectItem value="Done">Done</SelectItem>
+            <SelectItem value="Cancelled">Cancelled</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -49,7 +53,7 @@ export function FilterControls({
         <Select
           value={priorityFilter}
           onValueChange={(value) =>
-            setPriorityFilter(value as TaskPriority | "all")
+            setPriorityFilter(value as FilterPriority)
           }
         >
           <SelectTrigger id="priority-filter" className="w-[150px]">

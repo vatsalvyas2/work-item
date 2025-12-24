@@ -12,17 +12,17 @@ import type { Task } from "@/lib/types";
 
 interface TaskListProps {
   tasks: Task[];
-  onToggleComplete: (taskId: string) => void;
+  onTaskSelect: (task: Task) => void;
 }
 
-export function TaskList({ tasks, onToggleComplete }: TaskListProps) {
+export function TaskList({ tasks, onTaskSelect }: TaskListProps) {
   return (
     <div className="border rounded-lg">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[50px]"></TableHead>
             <TableHead>Task</TableHead>
+            <TableHead className="hidden sm:table-cell w-[120px] text-center">Status</TableHead>
             <TableHead className="hidden sm:table-cell w-[120px] text-center">Priority</TableHead>
             <TableHead className="w-[150px] text-right">Due Date</TableHead>
           </TableRow>
@@ -33,7 +33,7 @@ export function TaskList({ tasks, onToggleComplete }: TaskListProps) {
               <TaskItem
                 key={task.id}
                 task={task}
-                onToggleComplete={onToggleComplete}
+                onTaskSelect={onTaskSelect}
               />
             ))
           ) : (

@@ -32,17 +32,19 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { Task } from "@/lib/types";
+import { Switch } from "@/components/ui/switch";
 
 const formSchema = z.object({
   description: z.string().min(3, "Description must be at least 3 characters."),
   dueDate: z.date().optional(),
   priority: z.enum(["low", "medium", "high"]),
+  reviewRequired: z.boolean().default(false),
 });
 
 type TaskFormValues = z.infer<typeof formSchema>;
 
 interface TaskFormProps {
-  onSubmit: (data: Omit<Task, "id" | "completed">) => void;
+  onSubmit: (data: Omit<Task, "id" | "status" | "createdAt" | "timeline">) => void;
 }
 
 export function TaskForm({ onSubmit }: TaskFormProps) {
@@ -51,11 +53,12 @@ export function TaskForm({ onSubmit }: TaskFormProps) {
     defaultValues: {
       description: "",
       priority: "medium",
+      reviewRequired: false,
     },
   });
 
   const handleSubmit = (data: TaskFormValues) => {
-    onSubmit(data as Omit<Task, "id" | "completed">);
+    onSubmit(data as Omit<Task, "id" | "status" | "createdAt" | "timeline">);
     form.reset();
   };
 
@@ -138,6 +141,23 @@ export function TaskForm({ onSubmit }: TaskFormProps) {
                 )}
               />
             </div>
+             <FormField
+              control={form.control}
+              name="reviewRequired"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                  <div className="space-y-0.5">
+                    <FormLabel>Review Required</FormLabel>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
           </CardContent>
           <CardFooter>
             <Button type="submit">
