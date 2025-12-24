@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from "react";
@@ -8,6 +9,11 @@ import { TaskList } from "@/components/monochrome-task/TaskList";
 import { FilterControls } from "@/components/monochrome-task/FilterControls";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TaskDetails } from "@/components/monochrome-task/TaskDetails";
+import { TaskDashboard } from "@/components/monochrome-task/TaskDashboard";
+import { TaskCalendar } from "@/components/monochrome-task/TaskCalendar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { LayoutDashboard, List, Calendar } from "lucide-react";
+
 
 export default function Home() {
   const [tasks, setTasks] = useState<Task[]>([
@@ -216,7 +222,7 @@ export default function Home() {
 
   return (
     <div className="bg-background text-foreground min-h-screen font-body">
-      <main className="container mx-auto max-w-4xl p-4 sm:p-6 md:p-8">
+      <main className="container mx-auto max-w-7xl p-4 sm:p-6 md:p-8">
         <header className="text-center mb-8">
           <h1 className="text-4xl font-bold tracking-tight font-headline">
             MonochromeTask
@@ -230,29 +236,45 @@ export default function Home() {
           <TaskForm onSubmit={addTask} />
         </section>
 
-        <section>
-          <Card>
-            <CardHeader>
-              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                 <CardTitle>Your Tasks</CardTitle>
-              </div>
-               <FilterControls
-                statusFilter={statusFilter}
-                setStatusFilter={setStatusFilter}
-                priorityFilter={priorityFilter}
-                setPriorityFilter={setPriorityFilter}
-                sortBy={sortBy}
-                setSortBy={setSortBy}
-              />
-            </CardHeader>
-            <CardContent>
-              <TaskList
-                tasks={filteredAndSortedTasks}
-                onTaskSelect={handleSelectTask}
-              />
-            </CardContent>
-          </Card>
-        </section>
+        <Tabs defaultValue="list" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 max-w-md mx-auto mb-6">
+            <TabsTrigger value="list"><List className="mr-2 h-4 w-4" />Task List</TabsTrigger>
+            <TabsTrigger value="dashboard"><LayoutDashboard className="mr-2 h-4 w-4" />Dashboard</TabsTrigger>
+            <TabsTrigger value="calendar"><Calendar className="mr-2 h-4 w-4" />Calendar</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="list">
+            <section>
+              <Card>
+                <CardHeader>
+                  <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                    <CardTitle>Your Tasks</CardTitle>
+                  </div>
+                  <FilterControls
+                    statusFilter={statusFilter}
+                    setStatusFilter={setStatusFilter}
+                    priorityFilter={priorityFilter}
+                    setPriorityFilter={setPriorityFilter}
+                    sortBy={sortBy}
+                    setSortBy={setSortBy}
+                  />
+                </CardHeader>
+                <CardContent>
+                  <TaskList
+                    tasks={filteredAndSortedTasks}
+                    onTaskSelect={handleSelectTask}
+                  />
+                </CardContent>
+              </Card>
+            </section>
+          </TabsContent>
+          <TabsContent value="dashboard">
+            <TaskDashboard tasks={tasks} />
+          </TabsContent>
+          <TabsContent value="calendar">
+            <TaskCalendar tasks={tasks} onTaskSelect={handleSelectTask} />
+          </TabsContent>
+        </Tabs>
         
         {selectedTask && (
             <TaskDetails 

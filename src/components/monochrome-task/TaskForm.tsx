@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm, useWatch } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
@@ -69,14 +69,13 @@ export function TaskForm({ onSubmit }: TaskFormProps) {
       priority: "medium",
       reviewRequired: false,
       isRecurring: false,
+      recurrence: {
+        interval: undefined,
+        endDate: undefined,
+      }
     },
   });
   
-  const isRecurring = useWatch({
-      control: form.control,
-      name: 'isRecurring'
-  });
-
   const handleSubmit = (data: TaskFormValues) => {
     const { isRecurring, ...taskData } = data;
     if (!isRecurring) {
