@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Repeat, Plus, Send, Edit, Play, ShieldAlert, Flag, Check, X, MessageSquare, Pause, Ban, History } from 'lucide-react';
+import { ArrowLeft, Repeat, Plus, Send, Edit, Play, ShieldAlert, Flag, Check, X, MessageSquare, Pause, Ban, History, CalendarIcon } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
@@ -17,6 +17,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { database } from '@/lib/db';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 
 
 export default function TaskDetailsPage() {
@@ -29,6 +34,12 @@ export default function TaskDetailsPage() {
   const [comment, setComment] = useState('');
   const [subtaskTitle, setSubtaskTitle] = useState('');
   
+  const [isReworkDialogOpen, setIsReworkDialogOpen] = useState(false);
+  const [reworkComment, setReworkComment] = useState('');
+  const [newDueDate, setNewDueDate] = useState<Date | undefined>(undefined);
+  const [newDueTime, setNewDueTime] = useState('');
+
+
   // These would be based on logged in user
   const isAssignee = true; 
   const isReviewer = true;
@@ -41,6 +52,10 @@ export default function TaskDetailsPage() {
             const foundEpic = database.getEpic(foundTask.parentId);
             setEpic(foundEpic || null);
         }
+        setNewDueDate(foundTask.dueDate);
+        if(foundTask.dueDate) {
+          setNewDueTime(format(foundTask.dueDate, 'HH:mm'));
+        }
     }
   }, [taskId]);
 
@@ -48,26 +63,51 @@ export default function TaskDetailsPage() {
     return <div>Loading...</div>; // Or a proper skeleton loader
   }
 
-  const handleStatusChange = (newStatus: TaskStatus, details?: string) => {
+  const handleStatusChange = (newStatus: TaskStatus, details?: string, newDueDate?: Date) => {
     if(!task) return;
+    
+    let timelineDetails = details;
+    if (newStatus === 'In Progress' && details?.startsWith('Rework requested')) {
+        timelineDetails = `Rework requested. New due date: ${newDueDate ? format(newDueDate, 'PP p') : 'not set'}. Reason: ${details.split(':')[1] || ''}`;
+    }
+
     const timelineEntry: TimelineEntry = {
         id: `tl-${Date.now()}`,
         timestamp: new Date(),
         action: `Status changed to ${newStatus}`,
         user: 'Current User',
-        details: details
+        details: timelineDetails
     };
-    let updatedTaskData = {...task, status: newStatus, timeline: [...task.timeline, timelineEntry]};
+
+    let updatedTaskData: Partial<Task> = {
+        status: newStatus, 
+        timeline: [...task.timeline, timelineEntry],
+        dueDate: newDueDate || task.dueDate
+    };
+
     if (newStatus === 'In Progress' && !task.actualStartDate) {
         updatedTaskData.actualStartDate = new Date();
     }
     if (newStatus === 'Done') {
         updatedTaskData.completedAt = new Date();
     }
+    
     const updatedTask = database.updateTask(task.id, updatedTaskData);
     setTask(updatedTask);
   };
   
+  const handleReworkSubmit = () => {
+    let combinedDueDate: Date | undefined = newDueDate;
+    if(newDueDate && newDueTime) {
+      const [hours, minutes] = newDueTime.split(':').map(Number);
+      combinedDueDate = new Date(newDueDate);
+      combinedDueDate.setHours(hours, minutes);
+    }
+    handleStatusChange('In Progress', `Rework requested: ${reworkComment}`, combinedDueDate);
+    setIsReworkDialogOpen(false);
+    setReworkComment('');
+  }
+
   const addComment = () => {
     if (!comment.trim() || !task) return;
     const newComment: Comment = {
@@ -133,7 +173,7 @@ export default function TaskDetailsPage() {
               if (isReviewer) {
                   return (
                       <div className="flex gap-2">
-                          <Button variant="outline" onClick={() => handleStatusChange('In Progress', 'Rework requested')}><X className="mr-2"/> Rework</Button>
+                          <Button variant="outline" onClick={() => setIsReworkDialogOpen(true)}><X className="mr-2"/> Rework</Button>
                           <Button onClick={() => handleStatusChange('Done')}><Check className="mr-2"/> Approve & Mark Done</Button>
                       </div>
                   );
@@ -342,6 +382,68 @@ export default function TaskDetailsPage() {
                 </Card>
             </aside>
         </div>
+
+        <Dialog open={isReworkDialogOpen} onOpenChange={setIsReworkDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Request Rework</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="rework-comment">Reason for Rework</Label>
+                        <Textarea 
+                            id="rework-comment"
+                            placeholder="Provide feedback for the assignee..."
+                            value={reworkComment}
+                            onChange={(e) => setReworkComment(e.target.value)}
+                        />
+                    </div>
+                     <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>New Due Date</Label>
+                             <Popover>
+                              <PopoverTrigger asChild>
+                                  <Button
+                                    variant={"outline"}
+                                    className={cn(
+                                      "w-full justify-start text-left font-normal h-10",
+                                      !newDueDate && "text-muted-foreground"
+                                    )}
+                                  >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {newDueDate ? format(newDueDate, "PPP") : <span>Pick a date</span>}
+                                  </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                  mode="single"
+                                  selected={newDueDate}
+                                  onSelect={setNewDueDate}
+                                  initialFocus
+                                />
+                              </PopoverContent>
+                            </Popover>
+                        </div>
+                         <div className="space-y-2">
+                            <Label>New Due Time</Label>
+                            <Input 
+                                type="time"
+                                value={newDueTime}
+                                onChange={(e) => setNewDueTime(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button variant="outline">Cancel</Button>
+                    </DialogClose>
+                    <Button onClick={handleReworkSubmit} disabled={!reworkComment.trim() || !newDueDate}>Submit Rework</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </div>
   );
 }
+
+    
