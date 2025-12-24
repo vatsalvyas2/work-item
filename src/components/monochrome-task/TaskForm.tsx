@@ -32,14 +32,17 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import type { Task } from "@/lib/types";
+import type { Task, TaskType } from "@/lib/types";
 import { Switch } from "@/components/ui/switch";
 import { useState } from "react";
+import { Textarea } from "../ui/textarea";
 
 const formSchema = z.object({
-  description: z.string().min(3, "Description must be at least 3 characters."),
+  title: z.string().min(3, "Title must be at least 3 characters."),
+  description: z.string().optional(),
+  taskType: z.enum(['Story', 'Task', 'Bug']),
   dueDate: z.date().optional(),
-  priority: z.enum(["low", "medium", "high"]),
+  priority: z.enum(["low", "medium", "high", "none"]),
   reviewRequired: z.boolean().default(false),
   isRecurring: z.boolean().default(false),
   recurrence: z.object({
@@ -59,7 +62,7 @@ const formSchema = z.object({
 type TaskFormValues = z.infer<typeof formSchema>;
 
 interface TaskFormProps {
-  onSubmit: (data: Omit<Task, "id" | "status" | "createdAt" | "timeline">) => void;
+  onSubmit: (data: Omit<Task, "id" | "status" | "createdAt" | "timeline" | "subtasks" | "comments">) => void;
 }
 
 export function TaskForm({ onSubmit }: TaskFormProps) {
@@ -67,7 +70,9 @@ export function TaskForm({ onSubmit }: TaskFormProps) {
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      title: "",
       description: "",
+      taskType: "Task",
       priority: "medium",
       reviewRequired: false,
       isRecurring: false,
@@ -83,7 +88,7 @@ export function TaskForm({ onSubmit }: TaskFormProps) {
     if (!isRecurring) {
         delete taskData.recurrence;
     }
-    onSubmit(taskData as Omit<Task, "id" | "status" | "createdAt" | "timeline">);
+    onSubmit(taskData as Omit<Task, "id" | "status" | "createdAt" | "timeline" | "subtasks" | "comments">);
     form.reset();
     setIsRecurring(false);
   };
@@ -98,10 +103,10 @@ export function TaskForm({ onSubmit }: TaskFormProps) {
           <CardContent className="space-y-4">
             <FormField
               control={form.control}
-              name="description"
+              name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Task Description</FormLabel>
+                  <FormLabel>Title</FormLabel>
                   <FormControl>
                     <Input placeholder="e.g., Finish the report" {...field} />
                   </FormControl>
@@ -109,7 +114,42 @@ export function TaskForm({ onSubmit }: TaskFormProps) {
                 </FormItem>
               )}
             />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+             <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="Add a more detailed description..." {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <FormField
+                control={form.control}
+                name="taskType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Type</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Story">Story</SelectItem>
+                        <SelectItem value="Task">Task</SelectItem>
+                        <SelectItem value="Bug">Bug</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <FormField
                 control={form.control}
                 name="priority"
@@ -123,6 +163,7 @@ export function TaskForm({ onSubmit }: TaskFormProps) {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
                         <SelectItem value="low">Low</SelectItem>
                         <SelectItem value="medium">Medium</SelectItem>
                         <SelectItem value="high">High</SelectItem>
@@ -217,7 +258,7 @@ export function TaskForm({ onSubmit }: TaskFormProps) {
                              <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
                                     <SelectTrigger>
-                                    <SelectValue placeholder="Select interval" />
+                                        <SelectValue placeholder="Select interval" />
                                     </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>

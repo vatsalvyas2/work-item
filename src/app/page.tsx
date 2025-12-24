@@ -8,29 +8,36 @@ import { TaskForm } from "@/components/monochrome-task/TaskForm";
 import { TaskList } from "@/components/monochrome-task/TaskList";
 import { FilterControls } from "@/components/monochrome-task/FilterControls";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TaskDetails } from "@/components/monochrome-task/TaskDetails";
 import { TaskDashboard } from "@/components/monochrome-task/TaskDashboard";
 import { TaskCalendar } from "@/components/monochrome-task/TaskCalendar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LayoutDashboard, List, Calendar } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 
 export default function Home() {
   const [tasks, setTasks] = useState<Task[]>([
     {
       id: "task-1",
-      description: "Set up the project structure",
+      title: "Set up the project structure",
+      taskType: "Task",
+      description: "Define the folder structure and install base dependencies.",
       priority: "high",
       status: "Done",
       dueDate: new Date("2024-08-01"),
       createdAt: new Date("2024-07-25"),
       completedAt: new Date("2024-07-28"),
       reviewRequired: false,
-      timeline: [{id: "t1-1", timestamp: new Date(), action: "Task Created", user: "Admin"}]
+      timeline: [{id: "t1-1", timestamp: new Date(), action: "Task Created", user: "Admin"}],
+      subtasks: [],
+      comments: [],
+      reporter: "Vatsal Vyas"
     },
     {
       id: "task-2",
-      description: "Create the main UI components",
+      title: "Create the main UI components",
+      taskType: "Story",
+      description: "Develop React components for the main layout, header, and footer.",
       priority: "high",
       status: "In Progress",
       dueDate: new Date("2024-08-05"),
@@ -39,31 +46,48 @@ export default function Home() {
       reviewRequired: true,
       assignee: "Alex",
       reviewer: "Bob",
-      timeline: [{id: "t2-1", timestamp: new Date(), action: "Task Created", user: "Admin"}]
+      timeline: [{id: "t2-1", timestamp: new Date(), action: "Task Created", user: "Admin"}],
+      subtasks: [],
+      comments: [{id: "c2-1", timestamp: new Date(), text: "Can I get more info?", user: "Alex"}],
+      reporter: "Vatsal Vyas",
+      parentId: "epic-1",
     },
     {
       id: "task-3",
-      description: "Implement task state management",
+      title: "Implement task state management",
+      taskType: "Task",
+      description: "Use React hooks like useState and useReducer for state.",
       priority: "medium",
       status: "To Do",
       dueDate: new Date("2024-08-10"),
       createdAt: new Date("2024-07-27"),
       reviewRequired: false,
-      timeline: [{id: "t3-1", timestamp: new Date(), action: "Task Created", user: "Admin"}]
+      timeline: [{id: "t3-1", timestamp: new Date(), action: "Task Created", user: "Admin"}],
+      subtasks: [],
+      comments: [],
+      reporter: "Jane Doe",
+      parentId: "epic-1",
     },
     {
       id: "task-4",
-      description: "Add filtering and sorting functionality",
+      title: "Add filtering and sorting functionality",
+      taskType: "Task",
+      description: "Allow users to filter tasks by status and priority.",
       priority: "low",
       status: "On Hold",
       dueDate: undefined,
       createdAt: new Date("2024-07-28"),
       reviewRequired: false,
-      timeline: [{id: "t4-1", timestamp: new Date(), action: "Task Created", user: "Admin"}]
+      timeline: [{id: "t4-1", timestamp: new Date(), action: "Task Created", user: "Admin"}],
+      subtasks: [],
+      comments: [],
+      reporter: "Jane Doe"
     },
     {
       id: "task-5",
-      description: "Deploy the application",
+      title: "Deploy the application",
+      taskType: "Task",
+      description: "Deploy the app to a staging environment.",
       priority: "medium",
       status: "Under Review",
       dueDate: new Date("2024-08-15"),
@@ -71,114 +95,35 @@ export default function Home() {
       reviewRequired: true,
       assignee: "Charlie",
       reviewer: "David",
-      timeline: [{id: "t5-1", timestamp: new Date(), action: "Task Created", user: "Admin"}]
+      timeline: [{id: "t5-1", timestamp: new Date(), action: "Task Created", user: "Admin"}],
+      subtasks: [],
+      comments: [],
+      reporter: "Vatsal Vyas"
     },
   ]);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const router = useRouter();
 
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
   const [priorityFilter, setPriorityFilter] = useState<FilterPriority>(
     "all"
   );
   const [sortBy, setSortBy] = useState<"dueDate" | "priority">("dueDate");
-  
-  const logTimelineEntry = (taskId: string, action: string, details?: string): TimelineEntry => {
-    return {
-      id: `tl-${Date.now()}`,
-      timestamp: new Date(),
-      action,
-      details,
-      user: "System", // Placeholder
-    };
-  };
 
-  const updateTask = (taskId: string, updates: Partial<Omit<Task, 'id'>>, timelineEntry?: Omit<TimelineEntry, 'id' | 'timestamp'>) => {
-    setTasks(prevTasks => prevTasks.map(task => {
-      if (task.id === taskId) {
-        const newTimeline = [...task.timeline];
-        if (timelineEntry) {
-           newTimeline.push({
-             id: `tl-${Date.now()}`,
-             timestamp: new Date(),
-             ...timelineEntry
-           })
-        }
-        const updatedTask = { ...task, ...updates, timeline: newTimeline };
-        if (selectedTask?.id === taskId) {
-          setSelectedTask(updatedTask);
-        }
-        return updatedTask;
-      }
-      return task;
-    }));
-  };
-
-  const addTask = (task: Omit<Task, "id" | "status" | "createdAt" | "timeline" >) => {
+  const addTask = (task: Omit<Task, "id" | "status" | "createdAt" | "timeline" | "subtasks" | "comments" >) => {
     const newTask: Task = {
       ...task,
       id: `task-${Date.now()}`,
       status: "To Do",
       createdAt: new Date(),
       timeline: [{ id: `tl-${Date.now()}`, timestamp: new Date(), action: "Task Created", user: "System" }],
+      subtasks: [],
+      comments: [],
     };
     setTasks((prev) => [newTask, ...prev]);
-  };
-
-  const createNextRecurringTask = (task: Task) => {
-    if (!task.recurrence || !task.dueDate) return;
-
-    const { interval, endDate } = task.recurrence;
-    let nextDueDate: Date;
-
-    switch (interval) {
-        case 'daily': nextDueDate = addDays(task.dueDate, 1); break;
-        case 'weekly': nextDueDate = addWeeks(task.dueDate, 1); break;
-        case 'monthly': nextDueDate = addMonths(task.dueDate, 1); break;
-        case 'yearly': nextDueDate = addYears(task.dueDate, 1); break;
-        default: return;
-    }
-
-    if (endDate && nextDueDate > endDate) {
-        return; // Stop creating new tasks after the end date
-    }
-    
-    const newTask: Task = {
-        ...task,
-        id: `task-${Date.now()}`,
-        status: "To Do",
-        dueDate: nextDueDate,
-        createdAt: new Date(),
-        actualStartDate: undefined,
-        completedAt: undefined,
-        timeline: [{ id: `tl-${Date.now()}`, timestamp: new Date(), action: "Recurring task created", user: "System" }],
-    };
-    setTasks((prev) => [newTask, ...prev]);
-  };
-  
-  const handleTaskAction = (taskId: string, newStatus: TaskStatus, details?: string) => {
-    const task = tasks.find(t => t.id === taskId);
-    if (!task) return;
-
-    const updates: Partial<Task> = { status: newStatus };
-    if (newStatus === 'In Progress') {
-        updates.actualStartDate = new Date();
-    }
-    if (newStatus === 'Done') {
-        updates.completedAt = new Date();
-        if (task.recurrence) {
-            createNextRecurringTask(task);
-        }
-    }
-
-    updateTask(taskId, updates, { action: `Status changed to ${newStatus}`, details, user: "System" });
   };
   
   const handleSelectTask = (task: Task) => {
-    setSelectedTask(task);
-  }
-
-  const handleCloseDetails = () => {
-    setSelectedTask(null);
+    router.push(`/tasks/${task.id}`);
   }
 
   const filteredAndSortedTasks = useMemo(() => {
@@ -211,7 +156,7 @@ export default function Home() {
         return a.dueDate.getTime() - b.dueDate.getTime();
       }
       if (sortBy === "priority") {
-        const priorityOrder = { high: 0, medium: 1, low: 2 };
+        const priorityOrder = { high: 0, medium: 1, low: 2, none: 3 };
         return priorityOrder[a.priority] - priorityOrder[b.priority];
       }
       return 0;
@@ -275,14 +220,6 @@ export default function Home() {
             <TaskCalendar tasks={tasks} onTaskSelect={handleSelectTask} />
           </TabsContent>
         </Tabs>
-        
-        {selectedTask && (
-            <TaskDetails 
-                task={selectedTask} 
-                onClose={handleCloseDetails}
-                onAction={handleTaskAction}
-            />
-        )}
       </main>
       <footer className="text-center p-4 text-sm text-muted-foreground">
         Built with a focus on clarity and simplicity.
