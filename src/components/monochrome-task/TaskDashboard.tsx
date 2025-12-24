@@ -16,7 +16,8 @@ const COLORS = {
   'On Hold': '#a855f7',
   'Under Review': '#eab308',
   'Done': '#22c55e',
-  'Cancelled': '#6b7280'
+  'Cancelled': '#6b7280',
+  'Blocked': '#ef4444',
 };
 
 const PRIORITY_COLORS = {
@@ -30,7 +31,7 @@ const PRIORITY_COLORS = {
 export function TaskDashboard({ tasks }: TaskDashboardProps) {
 
     const statusCounts = useMemo(() => {
-        const counts: Record<Task['status'], number> = { 'To Do': 0, 'In Progress': 0, 'On Hold': 0, 'Under Review': 0, 'Done': 0, 'Cancelled': 0 };
+        const counts: Record<Task['status'], number> = { 'To Do': 0, 'In Progress': 0, 'On Hold': 0, 'Under Review': 0, 'Done': 0, 'Cancelled': 0, 'Blocked': 0 };
         tasks.forEach(task => {
             counts[task.status]++;
         });

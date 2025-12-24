@@ -1,15 +1,16 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Task, TaskStatus, TimelineEntry, Comment, Epic, Subtask } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Repeat, Plus, Send, Edit, Play, ShieldAlert, Flag, Check, X, MessageSquare, Pause, Ban, History, CalendarIcon } from 'lucide-react';
+import { ArrowLeft, Repeat, Plus, Send, Edit, Play, ShieldAlert, Flag, Check, X, MessageSquare, Pause, Ban, History, CalendarIcon, Link as LinkIcon, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
@@ -31,6 +32,8 @@ export default function TaskDetailsPage() {
   
   const [task, setTask] = useState<Task | null>(null);
   const [epic, setEpic] = useState<Epic | null>(null);
+  const [dependencies, setDependencies] = useState<Task[]>([]);
+  const [dependents, setDependents] = useState<Task[]>([]);
   const [comment, setComment] = useState('');
   const [subtaskTitle, setSubtaskTitle] = useState('');
   
@@ -45,13 +48,24 @@ export default function TaskDetailsPage() {
   const isReviewer = true;
 
   useEffect(() => {
-    const foundTask = database.getTask(taskId);
+    const allTasks = database.getTasks();
+    const foundTask = allTasks.find(t => t.id === taskId);
+
     if (foundTask) {
         setTask(foundTask);
         if (foundTask.parentId) {
             const foundEpic = database.getEpic(foundTask.parentId);
             setEpic(foundEpic || null);
         }
+        
+        if(foundTask.dependsOn) {
+            const deps = allTasks.filter(t => foundTask.dependsOn?.includes(t.id));
+            setDependencies(deps);
+        }
+
+        const foundDependents = allTasks.filter(t => t.dependsOn?.includes(foundTask.id));
+        setDependents(foundDependents);
+
         setNewDueDate(foundTask.dueDate);
         if(foundTask.dueDate) {
           setNewDueTime(format(foundTask.dueDate, 'HH:mm'));
@@ -59,10 +73,20 @@ export default function TaskDetailsPage() {
     }
   }, [taskId]);
 
+  const isBlocked = useMemo(() => {
+    if (!task || !task.dependsOn || task.dependsOn.length === 0) return false;
+    const allTasks = database.getTasks();
+    return task.dependsOn.some(depId => {
+      const depTask = allTasks.find(t => t.id === depId);
+      return depTask && depTask.status !== 'Done';
+    });
+  }, [task]);
+
+
   if (!task) {
     return <div>Loading...</div>; // Or a proper skeleton loader
   }
-
+  
   const handleStatusChange = (newStatus: TaskStatus, details?: string, newDueDate?: Date) => {
     if(!task) return;
     
@@ -94,6 +118,20 @@ export default function TaskDetailsPage() {
     
     const updatedTask = database.updateTask(task.id, updatedTaskData);
     setTask(updatedTask);
+
+    // Also update dependents
+    dependents.forEach(dep => {
+      const isStillBlocked = dep.dependsOn?.some(depId => {
+        if(depId === task.id) return newStatus !== 'Done'; // Check against the new status
+        const otherDep = database.getTask(depId);
+        return otherDep && otherDep.status !== 'Done';
+      });
+
+      if (dep.status === 'Blocked' && !isStillBlocked) {
+        database.updateTask(dep.id, { status: 'To Do' });
+      }
+    });
+
   };
   
   const handleReworkSubmit = () => {
@@ -155,7 +193,12 @@ export default function TaskDetailsPage() {
       switch(task.status) {
           case 'To Do':
               return <div className="flex gap-2">
-                <Button onClick={() => handleStatusChange('In Progress')}><Play className="mr-2"/> Start Task</Button>
+                <Button onClick={() => handleStatusChange('In Progress')} disabled={isBlocked}><Play className="mr-2"/> Start Task</Button>
+                {baseActions}
+              </div>
+          case 'Blocked':
+              return <div className="flex gap-2">
+                <Button disabled><Play className="mr-2"/> Start Task</Button>
                 {baseActions}
               </div>
           case 'In Progress':
@@ -218,6 +261,48 @@ export default function TaskDetailsPage() {
                         <p>{task.description || 'No description provided.'}</p>
                     </CardContent>
                 </Card>
+
+                {(dependencies.length > 0 || dependents.length > 0) && (
+                    <Card>
+                         <CardHeader>
+                            <CardTitle>Dependencies</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {dependencies.length > 0 && (
+                                <div className="mb-4">
+                                    <h4 className="font-semibold text-sm mb-2">Blocked By</h4>
+                                    <ul className="space-y-1">
+                                        {dependencies.map(dep => (
+                                             <li key={dep.id} className="text-sm flex items-center gap-2">
+                                                <LinkIcon className="h-3 w-3 text-muted-foreground" />
+                                                <Link href={`/tasks/${dep.id}`} className={cn("hover:underline", dep.status === 'Done' ? 'line-through text-green-600' : '')}>
+                                                    {dep.title}
+                                                </Link>
+                                                <Badge variant={dep.status === 'Done' ? 'default' : 'secondary'}>{dep.status}</Badge>
+                                             </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                             {dependents.length > 0 && (
+                                <div>
+                                    <h4 className="font-semibold text-sm mb-2">Blocking</h4>
+                                    <ul className="space-y-1">
+                                        {dependents.map(dep => (
+                                             <li key={dep.id} className="text-sm flex items-center gap-2">
+                                                <LinkIcon className="h-3 w-3 text-muted-foreground" />
+                                                <Link href={`/tasks/${dep.id}`} className="hover:underline">
+                                                    {dep.title}
+                                                </Link>
+                                                <Badge variant={dep.status === 'Done' ? 'default' : 'secondary'}>{dep.status}</Badge>
+                                             </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                )}
 
                 <Card>
                     <CardHeader>
@@ -314,7 +399,7 @@ export default function TaskDetailsPage() {
                     <CardContent className="space-y-4 text-sm">
                        <div className="flex justify-between items-center">
                             <span className="text-muted-foreground">Status</span>
-                            <Badge variant={task.status === 'Done' ? 'default' : 'secondary'}>{task.status}</Badge>
+                            <Badge variant={task.status === 'Done' ? 'default' : task.status === 'Blocked' ? 'destructive' : 'secondary'}>{task.status}</Badge>
                         </div>
                         <Separator />
                         <div className="flex justify-between items-center">
@@ -341,7 +426,7 @@ export default function TaskDetailsPage() {
                         {epic && (
                             <div className="flex justify-between items-center">
                                 <span className="text-muted-foreground">Parent Epic</span>
-                                <span className="text-purple-600 font-semibold">{epic.title}</span>
+                                <Link href={`/epics/${epic.id}`} className="text-purple-600 font-semibold hover:underline">{epic.title}</Link>
                             </div>
                         )}
                         <Separator />

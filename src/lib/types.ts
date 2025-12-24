@@ -1,12 +1,14 @@
 
 
+
 export type TaskStatus =
   | 'To Do'
   | 'In Progress'
   | 'On Hold'
   | 'Under Review'
   | 'Done'
-  | 'Cancelled';
+  | 'Cancelled'
+  | 'Blocked';
 
 export type TaskType = 'Story' | 'Task' | 'Bug';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'none';
@@ -69,6 +71,7 @@ export type Task = {
   parentId?: string; // Link to Epic
   subtasks: Subtask[];
   labels?: string[];
+  dependsOn?: string[]; // NEW: IDs of tasks that must be completed first
   storyPoints?: number;
   sprint?: string;
 };

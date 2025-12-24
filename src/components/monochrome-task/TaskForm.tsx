@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
-import { CalendarIcon, Plus } from "lucide-react";
+import { CalendarIcon, Plus, Check, ChevronsUpDown } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -23,6 +23,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import {
   Select,
   SelectContent,
@@ -52,6 +60,7 @@ const formSchema = z.object({
     endDate: z.date().optional(),
   }).optional(),
   parentId: z.string().optional(),
+  dependsOn: z.array(z.string()).optional(),
   assignee: z.string().optional(),
   reporter: z.string().optional(),
   plannedStartDate: z.date().optional(),
@@ -72,9 +81,10 @@ interface TaskFormProps {
   onTaskSubmit: (data: Omit<Task, "id" | "status" | "createdAt" | "timeline" | "subtasks" | "comments" >) => void;
   onEpicSubmit: (data: Omit<Epic, "id" | "project">) => void;
   epics: Epic[];
+  tasks: Task[];
 }
 
-export function TaskForm({ onTaskSubmit, onEpicSubmit, epics }: TaskFormProps) {
+export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormProps) {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -90,6 +100,7 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics }: TaskFormProps) {
         endDate: undefined,
       },
       parentId: "none",
+      dependsOn: [],
       assignee: "",
       reporter: "",
       dueTime: "",
@@ -129,6 +140,7 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics }: TaskFormProps) {
   };
 
   const isEpic = taskType === 'Epic';
+  const availableTasksForDepencency = tasks.filter(t => t.status !== 'Done' && t.status !== 'Cancelled');
 
   return (
     <Card>
@@ -347,29 +359,96 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics }: TaskFormProps) {
                   )}
                 </div>
 
-                <FormField
-                  control={form.control}
-                  name="parentId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Parent Epic</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Assign to an epic (optional)" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="none">No Epic</SelectItem>
-                          {epics.map(epic => (
-                            <SelectItem key={epic.id} value={epic.id}>{epic.title}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="parentId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Parent Epic</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Assign to an epic (optional)" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="none">No Epic</SelectItem>
+                            {epics.map(epic => (
+                              <SelectItem key={epic.id} value={epic.id}>{epic.title}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="dependsOn"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Depends On</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                className={cn(
+                                  "w-full justify-between",
+                                  !field.value?.length && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value?.length 
+                                  ? `${field.value.length} selected`
+                                  : "Select tasks"}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                            <Command>
+                              <CommandInput placeholder="Search tasks..." />
+                              <CommandList>
+                                <CommandEmpty>No tasks found.</CommandEmpty>
+                                <CommandGroup>
+                                  {availableTasksForDepencency.map((task) => (
+                                    <CommandItem
+                                      value={task.id}
+                                      key={task.id}
+                                      onSelect={() => {
+                                        const currentValue = field.value || [];
+                                        const isSelected = currentValue.includes(task.id);
+                                        const newValue = isSelected
+                                          ? currentValue.filter((id) => id !== task.id)
+                                          : [...currentValue, task.id];
+                                        field.onChange(newValue);
+                                      }}
+                                    >
+                                      <Check
+                                        className={cn(
+                                          "mr-2 h-4 w-4",
+                                          field.value?.includes(task.id)
+                                            ? "opacity-100"
+                                            : "opacity-0"
+                                        )}
+                                      />
+                                      {task.title}
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
 
                 <div className="flex flex-wrap gap-4">
                     <FormField

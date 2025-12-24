@@ -44,10 +44,16 @@ export default function Home() {
   };
 
   const addTask = (task: Omit<Task, "id" | "status" | "createdAt" | "timeline" | "subtasks" | "comments" >) => {
+    
+    const isBlocked = task.dependsOn && task.dependsOn.length > 0 && task.dependsOn.some(depId => {
+        const dependency = database.getTask(depId);
+        return dependency && dependency.status !== 'Done';
+    });
+
     const newTask: Task = {
       ...task,
       id: `task-${Date.now()}`,
-      status: "To Do",
+      status: isBlocked ? 'Blocked' : 'To Do',
       createdAt: new Date(),
       timeline: [{ id: `tl-${Date.now()}`, timestamp: new Date(), action: "Task Created", user: "System" }],
       subtasks: [],
@@ -74,6 +80,7 @@ export default function Home() {
     }
 
     const statusOrder: Record<TaskStatus, number> = {
+        'Blocked': 0,
         'To Do': 1,
         'In Progress': 2,
         'On Hold': 3,
@@ -121,6 +128,7 @@ export default function Home() {
             onTaskSubmit={addTask} 
             onEpicSubmit={addEpic} 
             epics={epics}
+            tasks={tasks}
           />
         </section>
 

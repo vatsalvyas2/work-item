@@ -68,6 +68,7 @@ export function TaskCalendar({ tasks, onTaskSelect }: TaskCalendarProps) {
     if (status === 'In Progress') return 'bg-yellow-200 text-yellow-800';
     if (status === 'Under Review') return 'bg-purple-200 text-purple-800';
     if (status === 'On Hold') return 'bg-gray-300 text-gray-800';
+    if (status === 'Blocked') return 'bg-red-300 text-red-900';
     return 'bg-blue-100 text-blue-700';
   };
 

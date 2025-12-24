@@ -40,6 +40,7 @@ export function FilterControls({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="Blocked">Blocked</SelectItem>
             <SelectItem value="To Do">To Do</SelectItem>
             <SelectItem value="In Progress">In Progress</SelectItem>
             <SelectItem value="On Hold">On Hold</SelectItem>
