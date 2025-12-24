@@ -89,7 +89,7 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics }: TaskFormProps) {
         interval: undefined,
         endDate: undefined,
       },
-      parentId: "",
+      parentId: "none",
       assignee: "",
       reporter: "",
       dueTime: "",
@@ -117,6 +117,7 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics }: TaskFormProps) {
 
         onTaskSubmit({
           ...taskData,
+          parentId: taskData.parentId === 'none' ? undefined : taskData.parentId,
           taskType: taskData.taskType as TaskType,
           dueDate: firstDueDate,
           recurrence: taskData.isRecurring ? data.recurrence : undefined,
@@ -336,7 +337,7 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics }: TaskFormProps) {
                                 <FormItem>
                                 <FormLabel>Time</FormLabel>
                                 <FormControl>
-                                    <Input type="time" {...field} />
+                                    <Input type="time" {...field} value={field.value || ''} />
                                 </FormControl>
                                 <FormMessage />
                                 </FormItem>
@@ -359,7 +360,7 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics }: TaskFormProps) {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">No Epic</SelectItem>
+                          <SelectItem value="none">No Epic</SelectItem>
                           {epics.map(epic => (
                             <SelectItem key={epic.id} value={epic.id}>{epic.title}</SelectItem>
                           ))}
@@ -498,3 +499,5 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics }: TaskFormProps) {
     </Card>
   );
 }
+
+    
