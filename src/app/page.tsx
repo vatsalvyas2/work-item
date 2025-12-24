@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { addDays, addWeeks, addMonths, addYears } from "date-fns";
 import type { Task, FilterStatus, FilterPriority, TaskStatus, TimelineEntry } from "@/lib/types";
 import { TaskForm } from "@/components/monochrome-task/TaskForm";
 import { TaskList } from "@/components/monochrome-task/TaskList";
@@ -116,14 +117,51 @@ export default function Home() {
     };
     setTasks((prev) => [newTask, ...prev]);
   };
+
+  const createNextRecurringTask = (task: Task) => {
+    if (!task.recurrence || !task.dueDate) return;
+
+    const { interval, endDate } = task.recurrence;
+    let nextDueDate: Date;
+
+    switch (interval) {
+        case 'daily': nextDueDate = addDays(task.dueDate, 1); break;
+        case 'weekly': nextDueDate = addWeeks(task.dueDate, 1); break;
+        case 'monthly': nextDueDate = addMonths(task.dueDate, 1); break;
+        case 'yearly': nextDueDate = addYears(task.dueDate, 1); break;
+        default: return;
+    }
+
+    if (endDate && nextDueDate > endDate) {
+        return; // Stop creating new tasks after the end date
+    }
+    
+    const newTask: Task = {
+        ...task,
+        id: `task-${Date.now()}`,
+        status: "To Do",
+        dueDate: nextDueDate,
+        createdAt: new Date(),
+        actualStartDate: undefined,
+        completedAt: undefined,
+        timeline: [{ id: `tl-${Date.now()}`, timestamp: new Date(), action: "Recurring task created", user: "System" }],
+    };
+    setTasks((prev) => [newTask, ...prev]);
+  };
   
   const handleTaskAction = (taskId: string, newStatus: TaskStatus, details?: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+
     const updates: Partial<Task> = { status: newStatus };
     if (newStatus === 'In Progress') {
         updates.actualStartDate = new Date();
     }
     if (newStatus === 'Done') {
         updates.completedAt = new Date();
+        if (task.recurrence) {
+            createNextRecurringTask(task);
+        }
     }
 
     updateTask(taskId, updates, { action: `Status changed to ${newStatus}`, details, user: "System" });

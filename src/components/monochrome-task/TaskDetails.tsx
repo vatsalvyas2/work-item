@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
 import { Textarea } from '../ui/textarea';
+import { Repeat } from 'lucide-react';
 
 interface TaskDetailsProps {
   task: Task;
@@ -68,12 +69,24 @@ export function TaskDetails({ task, onClose, onAction }: TaskDetailsProps) {
           <div className="flex items-center gap-2 pt-2">
             <Badge variant="secondary">{task.status}</Badge>
             <Badge variant="outline">{task.priority}</Badge>
+            {task.recurrence && (
+                <Badge variant="outline" className="flex items-center gap-1">
+                    <Repeat className="h-3 w-3" />
+                    Recurring
+                </Badge>
+            )}
           </div>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="text-sm">
             <strong>Due Date:</strong> {task.dueDate ? format(task.dueDate, 'PPP') : 'Not set'}
           </div>
+          {task.recurrence && (
+              <div className="text-sm">
+                  <strong>Repeats:</strong> {task.recurrence.interval.charAt(0).toUpperCase() + task.recurrence.interval.slice(1)}
+                  {task.recurrence.endDate && ` until ${format(task.recurrence.endDate, 'PPP')}`}
+              </div>
+          )}
            <div className="text-sm">
             <strong>Created:</strong> {format(task.createdAt, 'PPP p')}
           </div>

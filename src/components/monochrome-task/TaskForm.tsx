@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
@@ -33,12 +33,26 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { cn } from "@/lib/utils";
 import type { Task } from "@/lib/types";
 import { Switch } from "@/components/ui/switch";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const formSchema = z.object({
   description: z.string().min(3, "Description must be at least 3 characters."),
   dueDate: z.date().optional(),
   priority: z.enum(["low", "medium", "high"]),
   reviewRequired: z.boolean().default(false),
+  isRecurring: z.boolean().default(false),
+  recurrence: z.object({
+    interval: z.enum(['daily', 'weekly', 'monthly', 'yearly']).optional(),
+    endDate: z.date().optional(),
+  }).optional(),
+}).refine(data => {
+    if (data.isRecurring) {
+        return !!data.recurrence?.interval;
+    }
+    return true;
+}, {
+    message: "Recurrence interval is required for recurring tasks.",
+    path: ["recurrence.interval"],
 });
 
 type TaskFormValues = z.infer<typeof formSchema>;
@@ -54,11 +68,21 @@ export function TaskForm({ onSubmit }: TaskFormProps) {
       description: "",
       priority: "medium",
       reviewRequired: false,
+      isRecurring: false,
     },
+  });
+  
+  const isRecurring = useWatch({
+      control: form.control,
+      name: 'isRecurring'
   });
 
   const handleSubmit = (data: TaskFormValues) => {
-    onSubmit(data as Omit<Task, "id" | "status" | "createdAt" | "timeline">);
+    const { isRecurring, ...taskData } = data;
+    if (!isRecurring) {
+        delete taskData.recurrence;
+    }
+    onSubmit(taskData as Omit<Task, "id" | "status" | "createdAt" | "timeline">);
     form.reset();
   };
 
@@ -158,6 +182,90 @@ export function TaskForm({ onSubmit }: TaskFormProps) {
                 </FormItem>
               )}
             />
+
+            <Collapsible>
+              <FormField
+                control={form.control}
+                name="isRecurring"
+                render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                        <div className="space-y-0.5">
+                            <CollapsibleTrigger asChild>
+                                <FormLabel className="cursor-pointer">Recurring Task</FormLabel>
+                            </CollapsibleTrigger>
+                        </div>
+                        <FormControl>
+                            <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            />
+                        </FormControl>
+                    </FormItem>
+                )}
+              />
+              <CollapsibleContent className="space-y-4 pt-4">
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-lg border p-3 shadow-sm">
+                     <FormField
+                        control={form.control}
+                        name="recurrence.interval"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Repeats</FormLabel>
+                             <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                    <SelectValue placeholder="Select interval" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value="daily">Daily</SelectItem>
+                                    <SelectItem value="weekly">Weekly</SelectItem>
+                                    <SelectItem value="monthly">Monthly</SelectItem>
+                                    <SelectItem value="yearly">Yearly</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="recurrence.endDate"
+                        render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                            <FormLabel>End Date</FormLabel>
+                            <Popover>
+                            <PopoverTrigger asChild>
+                                <FormControl>
+                                <Button
+                                    variant={"outline"}
+                                    className={cn(
+                                    "w-full justify-start text-left font-normal h-10",
+                                    !field.value && "text-muted-foreground"
+                                    )}
+                                >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {field.value ? format(field.value, "PPP") : <span>Until...</span>}
+                                </Button>
+                                </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                mode="single"
+                                selected={field.value}
+                                onSelect={field.onChange}
+                                initialFocus
+                                />
+                            </PopoverContent>
+                            </Popover>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+
           </CardContent>
           <CardFooter>
             <Button type="submit">

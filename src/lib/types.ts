@@ -16,6 +16,11 @@ export type TimelineEntry = {
   user: string; // For now, just a name. Later could be a user ID.
 };
 
+export type Recurrence = {
+  interval: 'daily' | 'weekly' | 'monthly' | 'yearly';
+  endDate?: Date;
+}
+
 export type Task = {
   id: string;
   description: string;
@@ -29,6 +34,7 @@ export type Task = {
   assignee?: string; // For now, just a name
   reviewer?: string; // For now, just a name
   timeline: TimelineEntry[];
+  recurrence?: Recurrence;
 };
 
 export type FilterStatus = TaskStatus | 'all';

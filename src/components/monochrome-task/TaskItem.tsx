@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { ArrowUp, ArrowDown, Minus } from "lucide-react";
+import { ArrowUp, ArrowDown, Minus, Repeat } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { TableCell, TableRow } from "@/components/ui/table";
@@ -32,11 +32,12 @@ export function TaskItem({ task, onTaskSelect }: TaskItemProps) {
     >
       <TableCell
         className={cn(
-          "font-medium transition-colors",
+          "font-medium transition-colors flex items-center gap-2",
           isCompleted && "line-through text-muted-foreground"
         )}
       >
         {task.description}
+        {task.recurrence && <Repeat className="h-3.5 w-3.5 text-muted-foreground" />}
       </TableCell>
       <TableCell className="hidden sm:table-cell text-center">
         <Badge variant={task.status === 'Done' ? 'default' : 'secondary'}>{task.status}</Badge>
