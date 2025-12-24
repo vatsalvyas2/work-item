@@ -2,8 +2,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { addDays, addWeeks, addMonths, addYears } from "date-fns";
-import type { Task, FilterStatus, FilterPriority, TaskStatus, TimelineEntry } from "@/lib/types";
+import { useRouter } from "next/navigation";
+import type { Task, FilterStatus, FilterPriority, TaskStatus, Subtask } from "@/lib/types";
 import { TaskForm } from "@/components/monochrome-task/TaskForm";
 import { TaskList } from "@/components/monochrome-task/TaskList";
 import { FilterControls } from "@/components/monochrome-task/FilterControls";
@@ -12,7 +12,6 @@ import { TaskDashboard } from "@/components/monochrome-task/TaskDashboard";
 import { TaskCalendar } from "@/components/monochrome-task/TaskCalendar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LayoutDashboard, List, Calendar } from "lucide-react";
-import { useRouter } from "next/navigation";
 
 
 export default function Home() {
@@ -28,9 +27,11 @@ export default function Home() {
       createdAt: new Date("2024-07-25"),
       completedAt: new Date("2024-07-28"),
       reviewRequired: false,
+      isCritical: true,
       timeline: [{id: "t1-1", timestamp: new Date(), action: "Task Created", user: "Admin"}],
       subtasks: [],
       comments: [],
+      requester: "Vatsal Vyas",
       reporter: "Vatsal Vyas"
     },
     {
@@ -42,13 +43,17 @@ export default function Home() {
       status: "In Progress",
       dueDate: new Date("2024-08-05"),
       createdAt: new Date("2024-07-26"),
+      plannedStartDate: new Date("2024-07-28"),
       actualStartDate: new Date("2024-07-29"),
+      duration: 40,
       reviewRequired: true,
+      isCritical: false,
       assignee: "Alex",
       reviewer: "Bob",
       timeline: [{id: "t2-1", timestamp: new Date(), action: "Task Created", user: "Admin"}],
       subtasks: [],
       comments: [{id: "c2-1", timestamp: new Date(), text: "Can I get more info?", user: "Alex"}],
+      requester: "Vatsal Vyas",
       reporter: "Vatsal Vyas",
       parentId: "epic-1",
     },
@@ -62,43 +67,13 @@ export default function Home() {
       dueDate: new Date("2024-08-10"),
       createdAt: new Date("2024-07-27"),
       reviewRequired: false,
+      isCritical: false,
       timeline: [{id: "t3-1", timestamp: new Date(), action: "Task Created", user: "Admin"}],
       subtasks: [],
       comments: [],
+      requester: "Jane Doe",
       reporter: "Jane Doe",
       parentId: "epic-1",
-    },
-    {
-      id: "task-4",
-      title: "Add filtering and sorting functionality",
-      taskType: "Task",
-      description: "Allow users to filter tasks by status and priority.",
-      priority: "low",
-      status: "On Hold",
-      dueDate: undefined,
-      createdAt: new Date("2024-07-28"),
-      reviewRequired: false,
-      timeline: [{id: "t4-1", timestamp: new Date(), action: "Task Created", user: "Admin"}],
-      subtasks: [],
-      comments: [],
-      reporter: "Jane Doe"
-    },
-    {
-      id: "task-5",
-      title: "Deploy the application",
-      taskType: "Task",
-      description: "Deploy the app to a staging environment.",
-      priority: "medium",
-      status: "Under Review",
-      dueDate: new Date("2024-08-15"),
-      createdAt: new Date("2024-07-29"),
-      reviewRequired: true,
-      assignee: "Charlie",
-      reviewer: "David",
-      timeline: [{id: "t5-1", timestamp: new Date(), action: "Task Created", user: "Admin"}],
-      subtasks: [],
-      comments: [],
-      reporter: "Vatsal Vyas"
     },
   ]);
   const router = useRouter();
@@ -118,6 +93,7 @@ export default function Home() {
       timeline: [{ id: `tl-${Date.now()}`, timestamp: new Date(), action: "Task Created", user: "System" }],
       subtasks: [],
       comments: [],
+      requester: "Current User", // Placeholder
     };
     setTasks((prev) => [newTask, ...prev]);
   };

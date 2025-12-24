@@ -37,6 +37,12 @@ export type Epic = {
   project: string;
 }
 
+export type Subtask = {
+    id: string;
+    title: string;
+    status: TaskStatus;
+}
+
 export type Task = {
   id: string;
   title: string;
@@ -46,9 +52,13 @@ export type Task = {
   priority: TaskPriority;
   dueDate: Date | undefined;
   createdAt: Date;
+  plannedStartDate?: Date;
   actualStartDate?: Date;
   completedAt?: Date;
+  duration?: number; // in hours
+  isCritical: boolean;
   reviewRequired: boolean;
+  requester?: string;
   assignee?: string; 
   reporter?: string;
   reviewer?: string; 
@@ -56,7 +66,7 @@ export type Task = {
   comments: Comment[];
   recurrence?: Recurrence;
   parentId?: string; // Link to Epic
-  subtasks: Task[];
+  subtasks: Subtask[];
   labels?: string[];
   storyPoints?: number;
   sprint?: string;

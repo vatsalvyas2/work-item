@@ -43,6 +43,7 @@ const formSchema = z.object({
   taskType: z.enum(['Story', 'Task', 'Bug']),
   dueDate: z.date().optional(),
   priority: z.enum(["low", "medium", "high", "none"]),
+  isCritical: z.boolean().default(false),
   reviewRequired: z.boolean().default(false),
   isRecurring: z.boolean().default(false),
   recurrence: z.object({
@@ -62,7 +63,7 @@ const formSchema = z.object({
 type TaskFormValues = z.infer<typeof formSchema>;
 
 interface TaskFormProps {
-  onSubmit: (data: Omit<Task, "id" | "status" | "createdAt" | "timeline" | "subtasks" | "comments">) => void;
+  onSubmit: (data: Omit<Task, "id" | "status" | "createdAt" | "timeline" | "subtasks" | "comments" >) => void;
 }
 
 export function TaskForm({ onSubmit }: TaskFormProps) {
@@ -74,6 +75,7 @@ export function TaskForm({ onSubmit }: TaskFormProps) {
       description: "",
       taskType: "Task",
       priority: "medium",
+      isCritical: false,
       reviewRequired: false,
       isRecurring: false,
       recurrence: {
@@ -208,44 +210,60 @@ export function TaskForm({ onSubmit }: TaskFormProps) {
                 )}
               />
             </div>
-             <FormField
-              control={form.control}
-              name="reviewRequired"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                  <div className="space-y-0.5">
-                    <FormLabel>Review Required</FormLabel>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="isRecurring"
-              render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                      <div className="space-y-0.5">
-                          <FormLabel>Recurring Task</FormLabel>
-                      </div>
+             <div className="flex flex-wrap gap-4">
+                 <FormField
+                  control={form.control}
+                  name="reviewRequired"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center space-x-2">
                       <FormControl>
-                          <Switch
+                        <Switch
+                          id="review-required"
                           checked={field.value}
-                          onCheckedChange={(checked) => {
-                            field.onChange(checked);
-                            setIsRecurring(checked);
-                          }}
-                          />
+                          onCheckedChange={field.onChange}
+                        />
                       </FormControl>
-                  </FormItem>
-              )}
-            />
+                      <FormLabel htmlFor="review-required">Review Required</FormLabel>
+                    </FormItem>
+                  )}
+                />
+                 <FormField
+                  control={form.control}
+                  name="isCritical"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center space-x-2">
+                       <FormControl>
+                        <Switch
+                          id="critical-task"
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormLabel htmlFor="critical-task">Critical</FormLabel>
+                    </FormItem>
+                  )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="isRecurring"
+                    render={({ field }) => (
+                        <FormItem className="flex flex-row items-center space-x-2">
+                            <FormControl>
+                                <Switch
+                                id="recurring-task"
+                                checked={field.value}
+                                onCheckedChange={(checked) => {
+                                    field.onChange(checked);
+                                    setIsRecurring(checked);
+                                }}
+                                />
+                            </FormControl>
+                            <FormLabel htmlFor="recurring-task">Recurring Task</FormLabel>
+                        </FormItem>
+                    )}
+                />
+            </div>
+
             {isRecurring && (
               <div className="space-y-4 pt-4">
                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-lg border p-3 shadow-sm">
