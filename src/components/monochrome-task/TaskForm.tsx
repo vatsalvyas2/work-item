@@ -88,9 +88,10 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics }: TaskFormProps) {
         interval: undefined,
         endDate: undefined,
       },
-      parentId: undefined,
+      parentId: "",
       assignee: "",
       reporter: "",
+      dueTime: "",
     },
   });
 
@@ -297,7 +298,7 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics }: TaskFormProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Parent Epic</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Assign to an epic (optional)" />
@@ -446,3 +447,5 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics }: TaskFormProps) {
     </Card>
   );
 }
+
+    
