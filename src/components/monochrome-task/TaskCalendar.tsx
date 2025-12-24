@@ -2,10 +2,11 @@
 "use client";
 
 import { useState } from "react";
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, getMonth, getYear, add, isWithinInterval } from "date-fns";
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay } from "date-fns";
 import { Task } from "@/lib/types";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
 interface TaskCalendarProps {
@@ -34,15 +35,12 @@ export function TaskCalendar({ tasks, onTaskSelect }: TaskCalendarProps) {
     acc[dateKey] = tasks.filter(task => {
         if (!task.dueDate) return false;
 
-        // One-time tasks
         if (!task.recurrence) {
             return isSameDay(task.dueDate, day);
         }
 
-        // Recurring tasks
         const { interval, endDate: recurrenceEndDate } = task.recurrence;
         
-        // Check if the current day is within the recurrence period
         if (day < task.dueDate || (recurrenceEndDate && day > recurrenceEndDate)) {
             return false;
         }
@@ -81,6 +79,8 @@ export function TaskCalendar({ tasks, onTaskSelect }: TaskCalendarProps) {
     setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
   };
   
+  const MAX_VISIBLE_TASKS = 2;
+
   return (
     <div className="p-4 bg-white rounded-lg shadow">
       <div className="flex justify-between items-center mb-4">
@@ -96,33 +96,66 @@ export function TaskCalendar({ tasks, onTaskSelect }: TaskCalendarProps) {
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(day => (
           <div key={day} className="py-2 text-center font-semibold text-sm bg-gray-50 text-gray-600">{day}</div>
         ))}
-        {days.map(day => (
-          <div
-            key={day.toString()}
-            className={cn(
-              "relative bg-white p-2 min-h-[120px]",
-              !isSameMonth(day, monthStart) && "bg-gray-50 opacity-50",
-              isSameDay(day, new Date()) && "bg-blue-50"
-            )}
-          >
-            <span className="font-semibold text-sm">{format(day, "d")}</span>
-            <div className="mt-1 space-y-1">
-              {tasksByDate[format(day, "yyyy-MM-dd")]?.map(task => (
-                <div
-                  key={task.id}
-                  onClick={() => onTaskSelect(task)}
-                  className={cn(
-                    "p-1 rounded-md text-xs cursor-pointer hover:opacity-80 truncate",
-                    getTaskColor(task.status, task.dueDate)
+        {days.map(day => {
+            const dayTasks = tasksByDate[format(day, "yyyy-MM-dd")] || [];
+            const visibleTasks = dayTasks.slice(0, MAX_VISIBLE_TASKS);
+            const hiddenTasksCount = dayTasks.length - visibleTasks.length;
+
+            return (
+              <div
+                key={day.toString()}
+                className={cn(
+                  "relative bg-white p-2 min-h-[120px]",
+                  !isSameMonth(day, monthStart) && "bg-gray-50 opacity-50",
+                  isSameDay(day, new Date()) && "bg-blue-50"
+                )}
+              >
+                <span className="font-semibold text-sm">{format(day, "d")}</span>
+                <div className="mt-1 space-y-1">
+                  {visibleTasks.map(task => (
+                    <div
+                      key={task.id}
+                      onClick={() => onTaskSelect(task)}
+                      className={cn(
+                        "p-1 rounded-md text-xs cursor-pointer hover:opacity-80 truncate",
+                        getTaskColor(task.status, task.dueDate)
+                      )}
+                      title={task.title}
+                    >
+                      {task.title}
+                    </div>
+                  ))}
+                  {hiddenTasksCount > 0 && (
+                     <Popover>
+                        <PopoverTrigger asChild>
+                            <div className="text-xs text-blue-600 hover:underline cursor-pointer mt-1">
+                                +{hiddenTasksCount} more
+                            </div>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-64 p-2">
+                           <div className="space-y-2">
+                                <h4 className="font-semibold text-sm mb-2">Tasks for {format(day, 'MMM d')}</h4>
+                                {dayTasks.map(task => (
+                                    <div
+                                        key={task.id}
+                                        onClick={() => onTaskSelect(task)}
+                                        className={cn(
+                                            "p-1.5 rounded-md text-xs cursor-pointer hover:opacity-80 truncate",
+                                            getTaskColor(task.status, task.dueDate)
+                                        )}
+                                        title={task.title}
+                                    >
+                                        {task.title}
+                                    </div>
+                                ))}
+                           </div>
+                        </PopoverContent>
+                    </Popover>
                   )}
-                  title={task.title}
-                >
-                  {task.title}
                 </div>
-              ))}
-            </div>
-          </div>
-        ))}
+              </div>
+            )
+        })}
       </div>
     </div>
   );
