@@ -39,8 +39,8 @@ export default function Home() {
       id: `epic-${Date.now()}`,
       project: "SCRUM-X" // Placeholder
     };
-    database.addEpic(newEpic);
-    setEpics(database.getEpics());
+    const updatedEpics = database.addEpic(newEpic);
+    setEpics([...updatedEpics]);
   };
 
   const addTask = (task: Omit<Task, "id" | "status" | "createdAt" | "timeline" | "subtasks" | "comments" >) => {
@@ -54,8 +54,8 @@ export default function Home() {
       comments: [],
       requester: "Current User", // Placeholder
     };
-    database.addTask(newTask);
-    setTasks(database.getTasks());
+    const updatedTasks = database.addTask(newTask);
+    setTasks([...updatedTasks]);
   };
   
   const handleSelectTask = (task: Task) => {

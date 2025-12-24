@@ -1,5 +1,5 @@
 
-import type { AppDatabase, Task } from './types';
+import type { AppDatabase, Task, Epic } from './types';
 
 // In-memory database
 let db: AppDatabase = {
@@ -73,9 +73,9 @@ let db: AppDatabase = {
 export const database = {
   getTasks: () => db.tasks,
   getTask: (id: string) => db.tasks.find(t => t.id === id),
-  addTask: (task: any) => {
+  addTask: (task: Task) => {
     db.tasks.unshift(task);
-    return task;
+    return db.tasks;
   },
   updateTask: (id: string, updatedTaskData: Partial<Task>) => {
     let taskToUpdate: Task | undefined;
@@ -90,9 +90,9 @@ export const database = {
   },
   getEpics: () => db.epics,
   getEpic: (id: string) => db.epics.find(e => e.id === id),
-  addEpic: (epic: any) => {
+  addEpic: (epic: Epic) => {
     db.epics.unshift(epic);
-    return epic;
+    return db.epics;
   },
 };
 
