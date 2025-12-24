@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -33,7 +34,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { cn } from "@/lib/utils";
 import type { Task } from "@/lib/types";
 import { Switch } from "@/components/ui/switch";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useState } from "react";
 
 const formSchema = z.object({
   description: z.string().min(3, "Description must be at least 3 characters."),
@@ -62,6 +63,7 @@ interface TaskFormProps {
 }
 
 export function TaskForm({ onSubmit }: TaskFormProps) {
+  const [isRecurring, setIsRecurring] = useState(false);
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -83,6 +85,7 @@ export function TaskForm({ onSubmit }: TaskFormProps) {
     }
     onSubmit(taskData as Omit<Task, "id" | "status" | "createdAt" | "timeline">);
     form.reset();
+    setIsRecurring(false);
   };
 
   return (
@@ -182,27 +185,28 @@ export function TaskForm({ onSubmit }: TaskFormProps) {
               )}
             />
 
-            <Collapsible>
-              <FormField
-                control={form.control}
-                name="isRecurring"
-                render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                        <div className="space-y-0.5">
-                            <CollapsibleTrigger asChild>
-                                <FormLabel className="cursor-pointer">Recurring Task</FormLabel>
-                            </CollapsibleTrigger>
-                        </div>
-                        <FormControl>
-                            <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            />
-                        </FormControl>
-                    </FormItem>
-                )}
-              />
-              <CollapsibleContent className="space-y-4 pt-4">
+            <FormField
+              control={form.control}
+              name="isRecurring"
+              render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                      <div className="space-y-0.5">
+                          <FormLabel>Recurring Task</FormLabel>
+                      </div>
+                      <FormControl>
+                          <Switch
+                          checked={field.value}
+                          onCheckedChange={(checked) => {
+                            field.onChange(checked);
+                            setIsRecurring(checked);
+                          }}
+                          />
+                      </FormControl>
+                  </FormItem>
+              )}
+            />
+            {isRecurring && (
+              <div className="space-y-4 pt-4">
                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-lg border p-3 shadow-sm">
                      <FormField
                         control={form.control}
@@ -262,8 +266,8 @@ export function TaskForm({ onSubmit }: TaskFormProps) {
                         )}
                     />
                 </div>
-              </CollapsibleContent>
-            </Collapsible>
+              </div>
+            )}
 
           </CardContent>
           <CardFooter>
