@@ -1,6 +1,7 @@
 
 
 
+
 export type TaskStatus =
   | 'To Do'
   | 'In Progress'
@@ -46,6 +47,13 @@ export type Subtask = {
     status: 'To Do' | 'Done';
 }
 
+export type ExtensionRequest = {
+  requestedAt: Date;
+  newDueDate: Date;
+  reason?: string;
+  status: 'pending' | 'approved' | 'rejected';
+}
+
 export type Task = {
   id: string;
   title: string;
@@ -74,6 +82,7 @@ export type Task = {
   dependsOn?: string[]; // NEW: IDs of tasks that must be completed first
   storyPoints?: number;
   sprint?: string;
+  extensionRequest?: ExtensionRequest;
 };
 
 export type FilterStatus = TaskStatus | 'all';

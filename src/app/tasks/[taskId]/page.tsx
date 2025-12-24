@@ -4,13 +4,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Task, TaskStatus, TimelineEntry, Comment, Epic, Subtask } from '@/lib/types';
+import { Task, TaskStatus, TimelineEntry, Comment, Epic, Subtask, ExtensionRequest } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Repeat, Plus, Send, Edit, Play, ShieldAlert, Flag, Check, X, MessageSquare, Pause, Ban, History, CalendarIcon, Link as LinkIcon, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Repeat, Plus, Send, Edit, Play, ShieldAlert, Flag, Check, X, MessageSquare, Pause, Ban, History, CalendarIcon, Link as LinkIcon, AlertTriangle, Clock, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
@@ -23,6 +23,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 
 export default function TaskDetailsPage() {
@@ -42,10 +43,14 @@ export default function TaskDetailsPage() {
   const [newDueDate, setNewDueDate] = useState<Date | undefined>(undefined);
   const [newDueTime, setNewDueTime] = useState('');
 
+  const [isExtensionDialogOpen, setIsExtensionDialogOpen] = useState(false);
+  const [extensionReason, setExtensionReason] = useState('');
+
 
   // These would be based on logged in user
   const isAssignee = true; 
   const isReviewer = true;
+  const isReporter = true; // Assuming current user is reporter for extension flow
 
   useEffect(() => {
     const allTasks = database.getTasks();
@@ -180,6 +185,67 @@ export default function TaskDetailsPage() {
     setTask(updatedTask);
   }
 
+  const handleExtensionRequestSubmit = () => {
+    if(!task || !newDueDate) return;
+    let combinedDueDate: Date | undefined = newDueDate;
+    if(newDueDate && newDueTime) {
+      const [hours, minutes] = newDueTime.split(':').map(Number);
+      combinedDueDate = new Date(newDueDate);
+      combinedDueDate.setHours(hours, minutes);
+    } else {
+      return; // A new due date and time is required.
+    }
+
+    const extensionRequest: ExtensionRequest = {
+      requestedAt: new Date(),
+      newDueDate: combinedDueDate,
+      reason: extensionReason,
+      status: 'pending'
+    };
+
+    const timelineEntry: TimelineEntry = {
+      id: `tl-${Date.now()}`,
+      timestamp: new Date(),
+      action: 'Extension Requested',
+      user: 'Current User (Assignee)',
+      details: `New due date: ${format(combinedDueDate, 'PP p')}. Reason: ${extensionReason}`
+    };
+
+    const updatedTask = database.updateTask(task.id, { extensionRequest, timeline: [...task.timeline, timelineEntry] });
+    setTask(updatedTask);
+    setIsExtensionDialogOpen(false);
+    setExtensionReason('');
+  };
+
+  const handleExtensionRequestResponse = (approved: boolean) => {
+    if (!task || !task.extensionRequest) return;
+
+    const newStatus = approved ? 'approved' : 'rejected';
+    const action = approved ? 'Extension Approved' : 'Extension Rejected';
+    const details = `Reporter responded to extension request for ${format(task.extensionRequest.newDueDate, 'PP p')}.`;
+
+    const timelineEntry: TimelineEntry = {
+        id: `tl-${Date.now()}`,
+        timestamp: new Date(),
+        action,
+        user: 'Current User (Reporter)',
+        details
+    };
+
+    const updatedTaskData: Partial<Task> = {
+      extensionRequest: { ...task.extensionRequest, status: newStatus },
+      timeline: [...task.timeline, timelineEntry]
+    };
+
+    if (approved) {
+      updatedTaskData.dueDate = task.extensionRequest.newDueDate;
+    }
+
+    const updatedTask = database.updateTask(task.id, updatedTaskData);
+    setTask(updatedTask);
+  };
+
+
   const renderTaskActions = () => {
       if(!task) return null;
 
@@ -193,6 +259,7 @@ export default function TaskDetailsPage() {
       switch(task.status) {
           case 'To Do':
               return <div className="flex gap-2">
+                {isAssignee && !task.extensionRequest && <Button variant="outline" onClick={() => setIsExtensionDialogOpen(true)}><Clock className="mr-2"/> Request Extension</Button>}
                 <Button onClick={() => handleStatusChange('In Progress')} disabled={isBlocked}><Play className="mr-2"/> Start Task</Button>
                 {baseActions}
               </div>
@@ -253,6 +320,21 @@ export default function TaskDetailsPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <main className="lg:col-span-2 space-y-6">
+                {task.extensionRequest?.status === 'pending' && isReporter && (
+                    <Alert variant="default" className="border-yellow-400 bg-yellow-50">
+                        <Clock className="h-4 w-4 !text-yellow-600" />
+                        <AlertTitle className="text-yellow-800">Extension Request Pending</AlertTitle>
+                        <AlertDescription className="text-yellow-700">
+                            The assignee has requested a new due date of <strong>{format(task.extensionRequest.newDueDate, 'PPp')}</strong>.
+                            {task.extensionRequest.reason && <p className="mt-1 italic">Reason: "{task.extensionRequest.reason}"</p>}
+                            <div className="mt-4 flex gap-2">
+                                <Button size="sm" onClick={() => handleExtensionRequestResponse(true)}><ThumbsUp className="mr-2" /> Approve</Button>
+                                <Button size="sm" variant="destructive" onClick={() => handleExtensionRequestResponse(false)}><ThumbsDown className="mr-2" /> Reject</Button>
+                            </div>
+                        </AlertDescription>
+                    </Alert>
+                )}
+
                 <Card>
                     <CardHeader>
                         <CardTitle>Description</CardTitle>
@@ -463,6 +545,23 @@ export default function TaskDetailsPage() {
                                 <span className="flex items-center gap-1"><Repeat className="h-4 w-4" /> {task.recurrence.interval}</span>
                             </div>
                         )}
+                        {task.extensionRequest && (
+                           <>
+                            <Separator/>
+                            <div className="space-y-2">
+                                <span className="text-muted-foreground">Extension Request</span>
+                                <div className={cn("p-2 rounded-md border text-xs", 
+                                    task.extensionRequest.status === 'pending' && "bg-yellow-50 border-yellow-200",
+                                    task.extensionRequest.status === 'approved' && "bg-green-50 border-green-200",
+                                    task.extensionRequest.status === 'rejected' && "bg-red-50 border-red-200"
+                                )}>
+                                    <p><strong>Status:</strong> <span className="capitalize">{task.extensionRequest.status}</span></p>
+                                    <p><strong>Requested Date:</strong> {format(task.extensionRequest.newDueDate, 'PPp')}</p>
+                                    <p><strong>Original Date:</strong> {task.dueDate ? format(task.dueDate, 'PPp') : 'N/A'}</p>
+                                </div>
+                            </div>
+                           </>
+                        )}
                     </CardContent>
                 </Card>
             </aside>
@@ -524,6 +623,67 @@ export default function TaskDetailsPage() {
                         <Button variant="outline">Cancel</Button>
                     </DialogClose>
                     <Button onClick={handleReworkSubmit} disabled={!reworkComment.trim() || !newDueDate}>Submit Rework</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <Dialog open={isExtensionDialogOpen} onOpenChange={setIsExtensionDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Request Extension</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                     <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>New Due Date</Label>
+                             <Popover>
+                              <PopoverTrigger asChild>
+                                  <Button
+                                    variant={"outline"}
+                                    className={cn(
+                                      "w-full justify-start text-left font-normal h-10",
+                                      !newDueDate && "text-muted-foreground"
+                                    )}
+                                  >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {newDueDate ? format(newDueDate, "PPP") : <span>Pick a date</span>}
+                                  </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                  mode="single"
+                                  selected={newDueDate}
+                                  onSelect={setNewDueDate}
+                                  disabled={(date) => date < (task.dueDate || new Date())}
+                                  initialFocus
+                                />
+                              </PopoverContent>
+                            </Popover>
+                        </div>
+                         <div className="space-y-2">
+                            <Label>New Due Time</Label>
+                            <Input 
+                                type="time"
+                                value={newDueTime}
+                                onChange={(e) => setNewDueTime(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="extension-reason">Reason (optional)</Label>
+                        <Textarea 
+                            id="extension-reason"
+                            placeholder="Why do you need an extension?"
+                            value={extensionReason}
+                            onChange={(e) => setExtensionReason(e.target.value)}
+                        />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button variant="outline">Cancel</Button>
+                    </DialogClose>
+                    <Button onClick={handleExtensionRequestSubmit} disabled={!newDueDate || !newDueTime}>Send Request</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
