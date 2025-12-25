@@ -155,11 +155,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 <main className="container mx-auto max-w-7xl p-4 sm:p-6 md:p-8">
                     <header className="flex justify-between items-center mb-8">
                       <div className="flex items-center gap-4">
-                        <SidebarTrigger>
-                             <Button variant="ghost" size="icon">
-                                <ChevronLeft />
-                            </Button>
-                        </SidebarTrigger>
                         <h1 className="text-4xl font-bold tracking-tight font-headline">
                            {getPageTitle()}
                         </h1>
