@@ -21,7 +21,8 @@ let db: AppDatabase = {
           subtasks: [],
           comments: [],
           requester: "Vatsal Vyas",
-          reporter: "Vatsal Vyas"
+          reporter: "Vatsal Vyas",
+          storyPoints: 5,
         },
         {
           id: "task-2",
@@ -29,10 +30,11 @@ let db: AppDatabase = {
           taskType: "Story",
           description: "Develop React components for the main layout, header, and footer.",
           priority: "high",
-          status: "Blocked",
+          status: "Done",
           dependsOn: ["task-1"],
           dueDate: new Date("2024-08-05T09:00:00"),
           createdAt: new Date("2024-07-26"),
+          completedAt: new Date("2024-08-02"),
           plannedStartDate: new Date("2024-07-28"),
           duration: 40,
           reviewRequired: true,
@@ -45,6 +47,7 @@ let db: AppDatabase = {
           requester: "Vatsal Vyas",
           reporter: "Vatsal Vyas",
           parentId: "epic-1",
+          storyPoints: 8,
         },
         {
           id: "task-3",
@@ -52,7 +55,7 @@ let db: AppDatabase = {
           taskType: "Task",
           description: "Use React hooks like useState and useReducer for state.",
           priority: "medium",
-          status: "Blocked",
+          status: "In Progress",
           dependsOn: ["task-2"],
           dueDate: new Date("2024-08-10T14:00:00"),
           createdAt: new Date("2024-07-27"),
@@ -64,6 +67,7 @@ let db: AppDatabase = {
           requester: "Jane Doe",
           reporter: "Jane Doe",
           parentId: "epic-1",
+          storyPoints: 3,
         },
       ],
     epics: [

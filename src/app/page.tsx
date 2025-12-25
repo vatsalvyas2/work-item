@@ -15,7 +15,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LayoutDashboard, List, Calendar } from "lucide-react";
 import { database } from "@/lib/db";
 import { EpicList } from "@/components/work-item/EpicList";
-import { NotificationBell } from "@/components/work-item/NotificationBell";
 
 
 export default function Home() {
@@ -154,20 +153,8 @@ export default function Home() {
   }, [tasks, statusFilter, priorityFilter, sortBy]);
 
   return (
-    <div className="bg-background text-foreground min-h-screen font-body">
-      <main className="container mx-auto max-w-7xl p-4 sm:p-6 md:p-8">
-        <header className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold tracking-tight font-headline">
-            Work Item
-          </h1>
-          <NotificationBell 
-            notifications={notifications}
-            onNotificationClick={handleNotificationClick}
-            onMarkAllAsRead={handleMarkAllAsRead}
-          />
-        </header>
-
-        <section className="mb-8">
+    <div className="space-y-8">
+        <section>
           <TaskForm 
             onTaskSubmit={addTask} 
             onEpicSubmit={addEpic} 
@@ -176,7 +163,7 @@ export default function Home() {
           />
         </section>
 
-        <section className="mb-8">
+        <section>
             <EpicList epics={epics} />
         </section>
 
@@ -219,10 +206,6 @@ export default function Home() {
             <TaskCalendar tasks={tasks} onTaskSelect={handleSelectTask} />
           </TabsContent>
         </Tabs>
-      </main>
-      <footer className="text-center p-4 text-sm text-muted-foreground">
-        Built with a focus on clarity and simplicity.
-      </footer>
     </div>
   );
 }
