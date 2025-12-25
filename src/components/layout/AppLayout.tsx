@@ -55,6 +55,21 @@ function TasksSubMenu() {
     )
 }
 
+function AppSidebarHeader() {
+    const { open } = useSidebar();
+
+    return (
+        <div className="p-4 border-b flex justify-between items-center">
+            <h1 className="text-2xl font-bold tracking-tight">{open ? "Work Item" : "WI"}</h1>
+            <SidebarTrigger>
+                <Button variant="ghost" size="icon">
+                    <ChevronLeft />
+                </Button>
+            </SidebarTrigger>
+        </div>
+    );
+}
+
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
     const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -97,14 +112,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <SidebarProvider>
             <Sidebar>
                 <div className="flex flex-col h-full">
-                    <div className="p-4 border-b flex justify-between items-center">
-                        <h1 className="text-2xl font-bold tracking-tight">Work Item</h1>
-                        <SidebarTrigger>
-                            <Button variant="ghost" size="icon">
-                                <ChevronLeft />
-                            </Button>
-                        </SidebarTrigger>
-                    </div>
+                    <AppSidebarHeader />
                     <div className="flex-1 overflow-y-auto">
                         <SidebarMenu>
                              <SidebarMenuItem>
@@ -147,7 +155,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 <main className="container mx-auto max-w-7xl p-4 sm:p-6 md:p-8">
                     <header className="flex justify-between items-center mb-8">
                       <div className="flex items-center gap-4">
-                        <SidebarTrigger className="md:hidden" />
+                        <SidebarTrigger className="md:hidden">
+                             <Button variant="ghost" size="icon">
+                                <ChevronLeft />
+                            </Button>
+                        </SidebarTrigger>
                         <h1 className="text-4xl font-bold tracking-tight font-headline">
                            {getPageTitle()}
                         </h1>
