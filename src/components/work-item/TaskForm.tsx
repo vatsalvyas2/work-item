@@ -1,11 +1,11 @@
 
 "use client";
 
-import { useForm, useWatch, useFieldArray } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format, parseISO } from "date-fns";
-import { CalendarIcon, Plus, Check, ChevronsUpDown, Mic, Trash2 } from "lucide-react";
+import { CalendarIcon, Plus, Check, ChevronsUpDown, Mic, Trash2, Square, Loader2, Info, Send } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -40,13 +40,16 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import type { Task, Epic, TaskType, TaskPriority } from "@/lib/types";
+import type { Task, Epic, TaskType } from "@/lib/types";
 import { Switch } from "@/components/ui/switch";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Textarea } from "../ui/textarea";
-import { VoiceTaskDialog } from "./VoiceTaskDialog";
 import { createTaskFromVoice } from "@/ai/flows/create-task-flow";
+import { transcribeAudio } from "@/ai/flows/transcribe-audio-flow";
 import { ToggleGroup, ToggleGroupItem } from "../ui/toggle-group";
+import { Separator } from "../ui/separator";
+import { Alert, AlertTitle, AlertDescription } from "../ui/alert";
+
 
 const monthlyWeekdaySchema = z.object({
     order: z.enum(['First', 'Second', 'Third', 'Fourth', 'Last']),
@@ -122,7 +125,22 @@ interface TaskFormProps {
 }
 
 export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormProps) {
-  const [isVoiceDialogOpen, setIsVoiceDialogOpen] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isAiProcessing, setIsAiProcessing] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [transcript, setTranscript] = useState('');
+  const [isMicSupported, setIsMicSupported] = useState(true);
+  
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            setIsMicSupported(false);
+        }
+    }
+  }, []);
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -168,10 +186,72 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
   const monthlyMode = form.watch("recurrence.monthly.mode");
   const yearlyMode = form.watch("recurrence.yearly.mode");
 
-  const handleAiSubmit = async (command: string) => {
+  const startRecording = async () => {
+    setTranscript('');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm',
+        audioBitsPerSecond: 16000,
+      });
+      mediaRecorderRef.current = recorder;
+      audioChunksRef.current = [];
+
+      recorder.ondataavailable = (event) => {
+        audioChunksRef.current.push(event.data);
+      };
+
+      recorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = async () => {
+            const base64Audio = reader.result as string;
+            setIsTranscribing(true);
+            try {
+                const transcription = await transcribeAudio({ audioDataUri: base64Audio });
+                setTranscript(transcription);
+            } catch (error) {
+                console.error("Transcription error:", error);
+                setTranscript("Sorry, I couldn't transcribe that. Please try again.");
+            } finally {
+                setIsTranscribing(false);
+            }
+        };
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      recorder.start();
+      setIsRecording(true);
+    } catch (err) {
+      console.error("Error accessing microphone:", err);
+      setIsMicSupported(false); 
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+    }
+    setIsRecording(false);
+  };
+
+  const handleToggleRecording = () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
+
+  const handleAiSubmit = async () => {
+    if (!transcript.trim()) return;
+
+    setIsAiProcessing(true);
     try {
       const result = await createTaskFromVoice({
-        command,
+        command: transcript,
         availableEpics: epics.map(e => ({ id: e.id, title: e.title })),
         availableTasks: tasks.map(t => ({ id: t.id, title: t.title })),
         currentDate: new Date().toISOString(),
@@ -208,10 +288,12 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
       if (result.parentId) form.setValue("parentId", result.parentId);
       if (result.dependsOn) form.setValue("dependsOn", result.dependsOn);
 
-      setIsVoiceDialogOpen(false);
+      setTranscript('');
     } catch (error) {
       console.error("Error processing voice command:", error);
       // Optionally, show a toast notification to the user
+    } finally {
+      setIsAiProcessing(false);
     }
   };
   
@@ -260,19 +342,69 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
 
   const isEpic = taskType === 'Epic';
   const availableTasksForDepencency = tasks.filter(t => t.status !== 'Done' && t.status !== 'Cancelled');
+  const isAiSubmitDisabled = !transcript.trim() || isAiProcessing || isRecording || isTranscribing;
+
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader>
         <CardTitle>Create a New {isEpic ? 'Epic' : 'Task'}</CardTitle>
-        <Button variant="outline" onClick={() => setIsVoiceDialogOpen(true)}>
-          <Mic className="mr-2 h-4 w-4" />
-          Fill with AI
-        </Button>
       </CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)}>
           <CardContent className="space-y-6">
+            <div className="space-y-4 rounded-lg border p-4 shadow-sm">
+                <h3 className="font-semibold">Voice Command</h3>
+                {!isMicSupported ? (
+                    <Alert variant="destructive">
+                        <Info className="h-4 w-4" />
+                        <AlertTitle>Audio Recording Not Supported</AlertTitle>
+                        <AlertDescription>
+                            Your browser does not support audio recording or microphone access was denied. Please use a modern browser and grant microphone permissions.
+                        </AlertDescription>
+                    </Alert>
+                ) : (
+                    <div className="flex items-start gap-4">
+                        <Button
+                            type="button"
+                            size="icon"
+                            variant={isRecording ? 'destructive' : 'outline'}
+                            className="rounded-full flex-shrink-0"
+                            onClick={handleToggleRecording}
+                            disabled={!isMicSupported || isAiProcessing}
+                            aria-label={isRecording ? "Stop recording" : "Start recording"}
+                        >
+                            {isRecording ? <Square /> : <Mic />}
+                        </Button>
+                        <div className="w-full space-y-2">
+                           <div className="p-3 bg-muted rounded-md text-sm min-h-[40px] w-full">
+                                {isTranscribing ? (
+                                    <div className="flex items-center gap-2 text-muted-foreground">
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        <span>Transcribing...</span>
+                                    </div>
+                                ) : (
+                                    <p className="text-muted-foreground italic">
+                                        {transcript || (isRecording ? "Listening..." : "Click the mic and speak your command...")}
+                                    </p>
+                                )}
+                            </div>
+                           {transcript && (
+                                <Button type="button" size="sm" onClick={handleAiSubmit} disabled={isAiSubmitDisabled}>
+                                    {isAiProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                                    Apply to Form
+                                </Button>
+                           )}
+                        </div>
+                    </div>
+                )}
+            </div>
+            
+            <div className="relative py-2">
+              <Separator />
+              <span className="absolute left-1/2 -translate-x-1/2 -top-3 bg-card px-2 text-sm text-muted-foreground">OR</span>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                <FormField
                 control={form.control}
@@ -880,13 +1012,6 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
           </CardFooter>
         </form>
       </Form>
-      <VoiceTaskDialog
-        isOpen={isVoiceDialogOpen}
-        onOpenChange={setIsVoiceDialogOpen}
-        epics={epics}
-        tasks={tasks}
-        onAiSubmit={handleAiSubmit}
-      />
     </Card>
   );
 }
