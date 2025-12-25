@@ -53,7 +53,10 @@ export function VoiceTaskDialog({
     setTranscript('');
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
+      const recorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm',
+        audioBitsPerSecond: 16000, // Lower bitrate to reduce file size
+      });
       mediaRecorderRef.current = recorder;
       audioChunksRef.current = [];
 
