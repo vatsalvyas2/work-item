@@ -19,7 +19,6 @@ const priorityConfig: Record<
   high: { label: "High", icon: ArrowUp },
   medium: { label: "Medium", icon: Minus },
   low: { label: "Low", icon: ArrowDown },
-  none: { label: "None", icon: Minus },
 };
 
 const taskTypeConfig: Record<TaskType, { icon: React.ComponentType<{ className?: string }>, color: string }> = {

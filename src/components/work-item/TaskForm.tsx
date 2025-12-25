@@ -86,10 +86,10 @@ const recurrenceSchema = z.object({
 const formSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters."),
   description: z.string().optional(),
-  dueDate: z.date().optional(),
-  dueTime: z.string().optional(),
+  dueDate: z.string().optional(),
   priority: z.enum(["low", "medium", "high"]),
   reviewRequired: z.boolean().default(false),
+  reviewer: z.string().optional(),
   isRecurring: z.boolean().default(false),
   recurrence: recurrenceSchema,
   parentId: z.string().optional(),
@@ -105,6 +105,14 @@ const formSchema = z.object({
 }, {
     message: "Recurrence interval is required for recurring tasks.",
     path: ["recurrence.interval"],
+}).refine(data => {
+    if (data.reviewRequired) {
+        return !!data.reviewer && data.reviewer.length > 0;
+    }
+    return true;
+}, {
+    message: "Reviewer name is required.",
+    path: ["reviewer"],
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -114,12 +122,11 @@ const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 interface TaskFormProps {
   onTaskSubmit: (data: Omit<Task, "id" | "status" | "createdAt" | "timeline" | "subtasks" | "comments" >) => void;
-  onCollectionSubmit: (data: Omit<Collection, "id" | "project">) => void;
   collections: Collection[];
   tasks: Task[];
 }
 
-export function TaskForm({ onTaskSubmit, onCollectionSubmit, collections, tasks }: TaskFormProps) {
+export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
   const [isVoicePanelOpen, setIsVoicePanelOpen] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -147,6 +154,7 @@ export function TaskForm({ onTaskSubmit, onCollectionSubmit, collections, tasks 
       description: "",
       priority: "medium",
       reviewRequired: false,
+      reviewer: "",
       isRecurring: false,
       recurrence: {
         interval: 'daily',
@@ -167,7 +175,7 @@ export function TaskForm({ onTaskSubmit, onCollectionSubmit, collections, tasks 
       assignee: "",
       reporter: "Current User",
       requester: "",
-      dueTime: "",
+      dueDate: "",
     },
   });
 
@@ -181,8 +189,8 @@ export function TaskForm({ onTaskSubmit, onCollectionSubmit, collections, tasks 
       if (result.reporter) form.setValue("reporter", result.reporter);
       if (result.requester) form.setValue("requester", result.requester);
       if (result.dueDate) form.setValue("dueDate", result.dueDate);
-      if (result.dueTime) form.setValue("dueTime", result.dueTime);
       if (result.reviewRequired) form.setValue("reviewRequired", result.reviewRequired);
+      if (result.reviewer) form.setValue("reviewer", result.reviewer);
       if (result.parentId) form.setValue("parentId", result.parentId);
       if (result.dependsOn) form.setValue("dependsOn", result.dependsOn);
   };
@@ -266,7 +274,7 @@ export function TaskForm({ onTaskSubmit, onCollectionSubmit, collections, tasks 
       
       const populatedResult = {
         ...result,
-        dueDate: result.dueDate ? parseISO(result.dueDate) : undefined,
+        dueDate: result.dueDate ? format(parseISO(result.dueDate + (result.dueTime ? 'T' + result.dueTime : '')), "yyyy-MM-dd'T'HH:mm") : undefined,
       };
       
       onAiSubmit(populatedResult as Partial<FormValues>);
@@ -289,14 +297,9 @@ export function TaskForm({ onTaskSubmit, onCollectionSubmit, collections, tasks 
   const reviewRequired = form.watch("reviewRequired");
   
   const handleSubmit = (data: FormValues) => {
-    const { dueTime, ...taskData } = data;
+    const { ...taskData } = data;
     
-    let finalDueDate: Date | undefined = taskData.dueDate;
-    if (taskData.dueDate && dueTime) {
-        const [hours, minutes] = dueTime.split(':').map(Number);
-        finalDueDate = new Date(taskData.dueDate);
-        finalDueDate.setHours(hours, minutes);
-    }
+    let finalDueDate: Date | undefined = taskData.dueDate ? new Date(taskData.dueDate) : undefined;
 
     const recurrencePayload = taskData.isRecurring && taskData.recurrence ? {
         ...taskData.recurrence,
@@ -475,55 +478,19 @@ export function TaskForm({ onTaskSubmit, onCollectionSubmit, collections, tasks 
                     )}
                   />
                   {!isRecurring && (
-                    <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                            control={form.control}
-                            name="dueDate"
-                            render={({ field }) => (
-                            <FormItem className="flex flex-col">
-                                <FormLabel>Due Date</FormLabel>
-                                <Popover>
-                                <PopoverTrigger asChild>
-                                    <FormControl>
-                                    <Button
-                                        variant={"outline"}
-                                        className={cn(
-                                        "w-full justify-start text-left font-normal h-10",
-                                        !field.value && "text-muted-foreground"
-                                        )}
-                                    >
-                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                    </Button>
-                                    </FormControl>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                    <Calendar
-                                    mode="single"
-                                    selected={field.value}
-                                    onSelect={field.onChange}
-                                    initialFocus
-                                    />
-                                </PopoverContent>
-                                </Popover>
-                                <FormMessage />
+                    <FormField
+                        control={form.control}
+                        name="dueDate"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Due Date & Time</FormLabel>
+                            <FormControl>
+                                <Input type="datetime-local" {...field} value={field.value || ''} />
+                            </FormControl>
+                            <FormMessage />
                             </FormItem>
-                            )}
+                        )}
                         />
-                        <FormField
-                            control={form.control}
-                            name="dueTime"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Time</FormLabel>
-                                <FormControl>
-                                    <Input type="time" {...field} value={field.value || ''} />
-                                </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                            />
-                    </div>
                   )}
                 </div>
 
@@ -653,6 +620,22 @@ export function TaskForm({ onTaskSubmit, onCollectionSubmit, collections, tasks 
                     />
                 </div>
 
+                {reviewRequired && (
+                     <FormField
+                      control={form.control}
+                      name="reviewer"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Reviewer</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g., Alice" {...field} value={field.value || ''}/>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                )}
+
                 {isRecurring && (
                     <div className="space-y-4 rounded-lg border p-4 pt-2 shadow-sm">
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -740,8 +723,7 @@ export function TaskForm({ onTaskSubmit, onCollectionSubmit, collections, tasks 
           </CardContent>
           <CardFooter>
             <Button type="submit">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Work Item
+              Save
             </Button>
           </CardFooter>
         </form>

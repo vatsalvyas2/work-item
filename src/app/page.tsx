@@ -16,11 +16,14 @@ export default function Home() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [epics, setEpics] = useState<Collection[]>([]);
+
 
   useEffect(() => {
     setTasks(database.getTasks());
     setCollections(database.getCollections());
     setNotifications(database.getNotifications());
+    setEpics(database.getCollections());
   }, []);
 
   // Effect to check for overdue tasks and create notifications
@@ -63,6 +66,7 @@ export default function Home() {
     };
     const updatedCollections = database.addCollection(newCollection);
     setCollections([...updatedCollections]);
+    setEpics([...updatedCollections]);
   };
 
   const addTask = (task: Omit<Task, "id" | "status" | "createdAt" | "timeline" | "subtasks" | "comments" >) => {
@@ -152,14 +156,13 @@ export default function Home() {
         <section>
           <TaskForm 
             onTaskSubmit={addTask} 
-            onCollectionSubmit={addCollection} 
             collections={collections}
             tasks={tasks}
           />
         </section>
 
         <section>
-          <CollectionList collections={collections} />
+            <CollectionList collections={collections} />
         </section>
 
         <section>
