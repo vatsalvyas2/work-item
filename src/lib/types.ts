@@ -1,7 +1,4 @@
 
-
-
-
 export type TaskStatus =
   | 'To Do'
   | 'In Progress'
@@ -29,9 +26,24 @@ export type Comment = {
   user: string;
 }
 
+export type MonthlyRecurrence = {
+  mode: 'onDate' | 'onWeekday';
+  dates: number[]; // 1-31
+  weekdays: { order: 'First' | 'Second' | 'Third' | 'Fourth' | 'Last', day: number }[]; // day: 0-6 for Sun-Sat
+}
+
+export type YearlyRecurrence = {
+  mode: 'onDate' | 'onWeekday';
+  dates: { month: number, day: number }[]; // month: 0-11
+  weekdays: { order: 'First' | 'Second' | 'Third' | 'Fourth' | 'Last', day: number, month: number }[];
+}
+
 export type Recurrence = {
   interval: 'daily' | 'weekly' | 'monthly' | 'yearly';
   endDate?: Date;
+  daysOfWeek?: number[]; // For weekly, 0-6 for Sun-Sat
+  monthly?: MonthlyRecurrence;
+  yearly?: YearlyRecurrence;
 }
 
 export type Epic = {
