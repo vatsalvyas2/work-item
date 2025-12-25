@@ -5,11 +5,9 @@ import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { Task, FilterStatus, FilterPriority, TaskStatus, Collection, Notification } from "@/lib/types";
 import { TaskForm } from "@/components/work-item/TaskForm";
-import { TaskList } from "@/components/work-item/TaskList";
 import { FilterControls } from "@/components/work-item/FilterControls";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { database } from "@/lib/db";
-import { Book, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 
@@ -58,6 +56,7 @@ export default function Home() {
     "all"
   );
   const [sortBy, setSortBy] = useState<"dueDate" | "priority">("dueDate");
+  const [hideCollections, setHideCollections] = useState(false);
 
   const addCollection = (collection: Omit<Collection, "id" | "project">) => {
     const newCollection: Collection = {
@@ -198,24 +197,40 @@ export default function Home() {
                 setPriorityFilter={setPriorityFilter}
                 sortBy={sortBy}
                 setSortBy={setSortBy}
+                hideCollections={hideCollections}
+                setHideCollections={setHideCollections}
                 />
             </CardHeader>
             <CardContent>
-                <ul className="space-y-2 list-disc list-inside">
-                    {collectionOrder.map(collection => {
-                        const collectionTasks = tasksByCollection.grouped[collection.id] || [];
-                        if (collectionTasks.length === 0) return null;
+                {hideCollections ? (
+                     <ul className="space-y-1 list-disc list-inside">
+                        {filteredAndSortedTasks.map(task => (
+                            <li key={task.id} 
+                                onClick={() => handleSelectTask(task)}
+                                className={cn(
+                                    "cursor-pointer hover:underline",
+                                    task.status === 'Done' && 'line-through text-muted-foreground'
+                                )}
+                            >
+                                {task.title}
+                            </li>
+                        ))}
+                    </ul>
+                ) : (
+                    <ul className="space-y-2">
+                        {collectionOrder.map(collection => {
+                            const collectionTasks = tasksByCollection.grouped[collection.id] || [];
+                            if (collectionTasks.length === 0) return null;
 
-                        return (
-                            <li key={collection.id} className="font-semibold">
-                                {collection.title}
-                                {collectionTasks.length > 0 && (
-                                    <ul className="pl-6 mt-1 space-y-1 font-normal list-disc list-inside">
+                            return (
+                                <li key={collection.id} className="list-disc list-inside font-semibold">
+                                    {collection.title}
+                                    <ul className="pl-6 mt-1 space-y-1 font-normal">
                                         {collectionTasks.map(task => (
                                             <li key={task.id} 
                                                 onClick={() => handleSelectTask(task)}
                                                 className={cn(
-                                                    "cursor-pointer hover:underline",
+                                                    "cursor-pointer hover:underline list-['-_'] pl-2",
                                                     task.status === 'Done' && 'line-through text-muted-foreground'
                                                 )}
                                             >
@@ -223,22 +238,22 @@ export default function Home() {
                                             </li>
                                         ))}
                                     </ul>
+                                </li>
+                            )
+                        })}
+                        {tasksByCollection.standalone.map(task => (
+                            <li key={task.id} 
+                                onClick={() => handleSelectTask(task)}
+                                className={cn(
+                                    "cursor-pointer hover:underline list-outside list-[circle] ml-5",
+                                    task.status === 'Done' && 'line-through text-muted-foreground'
                                 )}
+                            >
+                                {task.title}
                             </li>
-                        )
-                    })}
-                    {tasksByCollection.standalone.map(task => (
-                        <li key={task.id} 
-                            onClick={() => handleSelectTask(task)}
-                             className={cn(
-                                "cursor-pointer hover:underline font-semibold",
-                                task.status === 'Done' && 'line-through text-muted-foreground'
-                            )}
-                        >
-                            {task.title}
-                        </li>
-                    ))}
-                </ul>
+                        ))}
+                    </ul>
+                )}
             </CardContent>
             </Card>
         </section>

@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import type { FilterPriority, FilterStatus } from "@/lib/types";
+import { Switch } from "@/components/ui/switch";
 
 interface FilterControlsProps {
   statusFilter: FilterStatus;
@@ -18,6 +19,8 @@ interface FilterControlsProps {
   setPriorityFilter: (priority: FilterPriority) => void;
   sortBy: "dueDate" | "priority";
   setSortBy: (sortBy: "dueDate" | "priority") => void;
+  hideCollections: boolean;
+  setHideCollections: (value: boolean) => void;
 }
 
 export function FilterControls({
@@ -27,6 +30,8 @@ export function FilterControls({
   setPriorityFilter,
   sortBy,
   setSortBy,
+  hideCollections,
+  setHideCollections
 }: FilterControlsProps) {
   return (
     <div className="flex flex-col sm:flex-row flex-wrap items-center gap-4 pt-4 border-t mt-4">
@@ -83,6 +88,10 @@ export function FilterControls({
             <SelectItem value="priority">Priority</SelectItem>
           </SelectContent>
         </Select>
+      </div>
+      <div className="flex items-center space-x-2">
+        <Switch id="hide-collections" checked={hideCollections} onCheckedChange={setHideCollections} />
+        <Label htmlFor="hide-collections">Hide Collections</Label>
       </div>
     </div>
   );
