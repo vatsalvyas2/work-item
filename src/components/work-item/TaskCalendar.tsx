@@ -2,11 +2,12 @@
 "use client";
 
 import { useState } from "react";
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay } from "date-fns";
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, getYear, getMonth, setYear, setMonth } from "date-fns";
 import { Task } from "@/lib/types";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 interface TaskCalendarProps {
@@ -72,6 +73,14 @@ export function TaskCalendar({ tasks, onTaskSelect }: TaskCalendarProps) {
     return 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300';
   };
 
+  const changeMonth = (month: number) => {
+    setCurrentDate(setMonth(currentDate, month));
+  };
+  
+  const changeYear = (year: number) => {
+    setCurrentDate(setYear(currentDate, year));
+  }
+
   const nextMonth = () => {
     setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
   };
@@ -82,13 +91,39 @@ export function TaskCalendar({ tasks, onTaskSelect }: TaskCalendarProps) {
   
   const MAX_VISIBLE_TASKS = 2;
 
+  const currentYear = getYear(currentDate);
+  const years = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
+
   return (
     <div className="p-4 bg-card rounded-lg shadow border">
       <div className="flex justify-between items-center mb-4">
         <Button variant="outline" size="icon" onClick={prevMonth}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        <h2 className="text-xl font-bold">{format(currentDate, "MMMM yyyy")}</h2>
+
+        <div className="flex items-center gap-2">
+            <Select value={String(getMonth(currentDate))} onValueChange={(value) => changeMonth(Number(value))}>
+                <SelectTrigger className="w-[120px]">
+                    <SelectValue placeholder="Month" />
+                </SelectTrigger>
+                <SelectContent>
+                    {Array.from({length: 12}).map((_, i) => (
+                        <SelectItem key={i} value={String(i)}>{format(new Date(0, i), 'MMMM')}</SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+            <Select value={String(getYear(currentDate))} onValueChange={(value) => changeYear(Number(value))}>
+                <SelectTrigger className="w-[100px]">
+                    <SelectValue placeholder="Year" />
+                </SelectTrigger>
+                <SelectContent>
+                    {years.map(year => (
+                        <SelectItem key={year} value={String(year)}>{year}</SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+        </div>
+
         <Button variant="outline" size="icon" onClick={nextMonth}>
           <ChevronRight className="h-4 w-4" />
         </Button>
