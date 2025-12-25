@@ -1,11 +1,11 @@
 
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { format } from "date-fns";
-import { CalendarIcon, Plus, Check, ChevronsUpDown } from "lucide-react";
+import { format, parseISO } from "date-fns";
+import { CalendarIcon, Plus, Check, ChevronsUpDown, Mic } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -40,10 +40,12 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import type { Task, Epic, TaskType } from "@/lib/types";
+import type { Task, Epic, TaskType, TaskPriority } from "@/lib/types";
 import { Switch } from "@/components/ui/switch";
 import { useState } from "react";
 import { Textarea } from "../ui/textarea";
+import { VoiceTaskDialog } from "./VoiceTaskDialog";
+import { createTaskFromVoice } from "@/ai/flows/create-task-flow";
 
 const formSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters."),
@@ -85,6 +87,8 @@ interface TaskFormProps {
 }
 
 export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormProps) {
+  const [isVoiceDialogOpen, setIsVoiceDialogOpen] = useState(false);
+  
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -109,6 +113,53 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
 
   const taskType = form.watch("taskType");
   const isRecurring = form.watch("isRecurring");
+  
+  const handleAiSubmit = async (command: string) => {
+    try {
+      const result = await createTaskFromVoice({
+        command,
+        availableEpics: epics.map(e => ({ id: e.id, title: e.title })),
+        availableTasks: tasks.map(t => ({ id: t.id, title: t.title })),
+        currentDate: new Date().toISOString(),
+      });
+
+      // Reset fields that might not be in the AI response
+      form.setValue('title', '');
+      form.setValue('description', '');
+      form.setValue('taskType', 'Task');
+      form.setValue('priority', 'medium');
+      form.setValue('assignee', '');
+      form.setValue('reporter', '');
+      form.setValue('plannedStartDate', undefined);
+      form.setValue('dueDate', undefined);
+      form.setValue('dueTime', '');
+      form.setValue('reviewRequired', false);
+      form.setValue('isCritical', false);
+      form.setValue('parentId', 'none');
+      form.setValue('dependsOn', []);
+
+
+      // Populate form with AI response
+      if (result.title) form.setValue("title", result.title);
+      if (result.description) form.setValue("description", result.description);
+      if (result.taskType) form.setValue("taskType", result.taskType);
+      if (result.priority) form.setValue("priority", result.priority);
+      if (result.assignee) form.setValue("assignee", result.assignee);
+      if (result.reporter) form.setValue("reporter", result.reporter);
+      if (result.plannedStartDate) form.setValue("plannedStartDate", parseISO(result.plannedStartDate));
+      if (result.dueDate) form.setValue("dueDate", parseISO(result.dueDate));
+      if (result.dueTime) form.setValue("dueTime", result.dueTime);
+      if (result.reviewRequired) form.setValue("reviewRequired", result.reviewRequired);
+      if (result.isCritical) form.setValue("isCritical", result.isCritical);
+      if (result.parentId) form.setValue("parentId", result.parentId);
+      if (result.dependsOn) form.setValue("dependsOn", result.dependsOn);
+
+      setIsVoiceDialogOpen(false);
+    } catch (error) {
+      console.error("Error processing voice command:", error);
+      // Optionally, show a toast notification to the user
+    }
+  };
   
   const handleSubmit = (data: FormValues) => {
     if (data.taskType === 'Epic') {
@@ -144,8 +195,12 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Create a New {isEpic ? 'Epic' : 'Task'}</CardTitle>
+        <Button variant="outline" onClick={() => setIsVoiceDialogOpen(true)}>
+          <Mic className="mr-2 h-4 w-4" />
+          Fill with AI
+        </Button>
       </CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)}>
@@ -157,7 +212,7 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Type</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select type" />
@@ -289,7 +344,7 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Priority</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select priority" />
@@ -573,6 +628,13 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
           </CardFooter>
         </form>
       </Form>
+      <VoiceTaskDialog
+        isOpen={isVoiceDialogOpen}
+        onOpenChange={setIsVoiceDialogOpen}
+        epics={epics}
+        tasks={tasks}
+        onAiSubmit={handleAiSubmit}
+      />
     </Card>
   );
 }
