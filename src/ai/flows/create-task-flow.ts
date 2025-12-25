@@ -48,6 +48,14 @@ Analyze the user's command and fill in the fields of the output schema in Englis
 - Dates should be in 'YYYY-MM-DD' format.
 - Times should be in 'HH:mm' format.
 - Booleans should be true or false.
+
+- For recurrence:
+  - If the user specifies a recurring task (e.g., "daily", "every week", "monthly on the 5th"), set 'isRecurring' to true and fill the 'recurrence' object.
+  - 'interval' should be one of 'daily', 'weekly', 'monthly', 'yearly'.
+  - For 'weekly' recurrence, 'daysOfWeek' should be an array of numbers (0=Sun, 1=Mon, ..., 6=Sat).
+  - For 'monthly' or 'yearly' recurrence, determine the mode ('onDate' or 'onWeekday') and populate the details.
+  - Convert spoken days/months to their numerical representation. (e.g., "Monday" -> 1, "January" -> 0).
+
 - Do not invent information. If a field is not mentioned, leave it empty.
 
 User command: "{{command}}"`,

@@ -40,7 +40,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import type { Task, Collection, TaskType } from "@/lib/types";
+import type { Task, Collection } from "@/lib/types";
 import { Switch } from "@/components/ui/switch";
 import { useState, useRef, useEffect } from "react";
 import { Textarea } from "../ui/textarea";
@@ -124,7 +124,7 @@ const WEEK_ORDER: ('First' | 'Second' | 'Third' | 'Fourth' | 'Last')[] = ['First
 
 
 interface TaskFormProps {
-  onTaskSubmit: (data: Omit<Task, "id" | "status" | "createdAt" | "timeline" | "subtasks" | "comments" | 'taskType' | 'isCritical'>) => void;
+  onTaskSubmit: (data: Omit<Task, "id" | "status" | "createdAt" | "timeline" | "subtasks" | "comments" | "taskType" | "isCritical">) => void;
   collections: Collection[];
   tasks: Task[];
 }
@@ -216,6 +216,29 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
       if (result.reviewer) form.setValue("reviewer", result.reviewer);
       if (result.parentId) form.setValue("parentId", result.parentId);
       if (result.dependsOn) form.setValue("dependsOn", result.dependsOn);
+      if (result.isRecurring) form.setValue("isRecurring", result.isRecurring);
+      if (result.recurrence?.interval) form.setValue("recurrence.interval", result.recurrence.interval);
+      if (result.recurrence?.endDate) form.setValue("recurrence.endDate", parseISO(result.recurrence.endDate as any));
+      if (result.recurrence?.daysOfWeek) form.setValue("recurrence.daysOfWeek", result.recurrence.daysOfWeek.map(String));
+      
+      if (result.recurrence?.monthly) {
+        form.setValue("recurrence.monthly.mode", result.recurrence.monthly.mode);
+        if(result.recurrence.monthly.mode === 'onDate' && result.recurrence.monthly.dates) {
+          form.setValue("recurrence.monthly.dates", result.recurrence.monthly.dates);
+        }
+        if(result.recurrence.monthly.mode === 'onWeekday' && result.recurrence.monthly.weekdays) {
+          form.setValue("recurrence.monthly.weekdays", result.recurrence.monthly.weekdays.map(d => ({...d, day: String(d.day)})));
+        }
+      }
+      if (result.recurrence?.yearly) {
+        form.setValue("recurrence.yearly.mode", result.recurrence.yearly.mode);
+        if(result.recurrence.yearly.mode === 'onDate' && result.recurrence.yearly.dates) {
+          form.setValue("recurrence.yearly.dates", result.recurrence.yearly.dates.map(d => new Date(new Date().getFullYear(), d.month, d.day)));
+        }
+        if(result.recurrence.yearly.mode === 'onWeekday' && result.recurrence.yearly.weekdays) {
+           form.setValue("recurrence.yearly.weekdays", result.recurrence.yearly.weekdays.map(d => ({...d, day: String(d.day), month: String(d.month)})));
+        }
+      }
   };
 
   const startRecording = async () => {
@@ -297,8 +320,7 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
       
       const populatedResult = {
         ...result,
-        dueDate: result.dueDate ? format(parseISO(result.dueDate), "yyyy-MM-dd") : undefined,
-        dueTime: result.dueTime || undefined,
+        dueDate: result.dueDate ? format(parseISO(result.dueDate), "yyyy-MM-dd'T'HH:mm") : undefined,
       };
       
       onAiSubmit(populatedResult as Partial<FormValues>);
@@ -328,42 +350,34 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
   }, [reviewRequired, reporter, form]);
   
   const handleSubmit = (data: FormValues) => {
-    const { ...taskData } = data;
     
     let finalDueDate: Date | undefined;
 
-    if (data.isRecurring) {
-        // For recurring tasks, we might not have a single 'dueDate'. 
-        // The first occurrence would be calculated based on recurrence rules.
-        // We do need to capture the time.
-        if (data.dueTime) {
-            const [hours, minutes] = data.dueTime.split(':').map(Number);
-            // Create a placeholder date with the right time. The actual date will be determined by the recurrence rule.
-            finalDueDate = new Date(); 
-            finalDueDate.setHours(hours, minutes, 0, 0);
-        }
-    } else if (data.dueDate) {
+    if(data.dueDate) {
         finalDueDate = new Date(data.dueDate);
+    } else if (data.isRecurring && data.dueTime) {
+        const [hours, minutes] = data.dueTime.split(':').map(Number);
+        finalDueDate = new Date(); 
+        finalDueDate.setHours(hours, minutes, 0, 0);
     }
 
-
-    const recurrencePayload = taskData.isRecurring && taskData.recurrence ? {
-        ...taskData.recurrence,
-        daysOfWeek: taskData.recurrence.daysOfWeek?.map(d => parseInt(d)),
-        monthly: {
-            ...taskData.recurrence.monthly!,
-            weekdays: taskData.recurrence.monthly!.weekdays?.map(wd => ({...wd, day: parseInt(wd.day)}))
-        },
-        yearly: {
-            ...taskData.recurrence.yearly!,
-            dates: taskData.recurrence.yearly!.dates,
-            weekdays: taskData.recurrence.yearly!.weekdays?.map(wd => ({...wd, day: parseInt(wd.day), month: parseInt(wd.month) }))
-        }
+    const recurrencePayload = data.isRecurring && data.recurrence ? {
+        ...data.recurrence,
+        daysOfWeek: data.recurrence.daysOfWeek?.map(d => parseInt(d)),
+        monthly: data.recurrence.monthly ? {
+            ...data.recurrence.monthly,
+            weekdays: data.recurrence.monthly.weekdays?.map(wd => ({...wd, day: parseInt(wd.day)}))
+        } : undefined,
+        yearly: data.recurrence.yearly ? {
+            ...data.recurrence.yearly,
+            dates: data.recurrence.yearly.dates?.map(d => ({ month: d.getMonth(), day: d.getDate() })),
+            weekdays: data.recurrence.yearly.weekdays?.map(wd => ({...wd, day: parseInt(wd.day), month: parseInt(wd.month) }))
+        } : undefined
     } : undefined;
 
     onTaskSubmit({
-      ...taskData,
-      parentId: taskData.parentId === 'none' ? undefined : taskData.parentId,
+      ...data,
+      parentId: data.parentId === 'none' ? undefined : data.parentId,
       dueDate: finalDueDate,
       recurrence: recurrencePayload,
     });
@@ -503,21 +517,19 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-                    {!isRecurring && (
-                        <FormField
-                            control={form.control}
-                            name="dueDate"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Due Date & Time</FormLabel>
-                                <FormControl>
-                                    <Input type="datetime-local" {...field} value={field.value || ''} />
-                                </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                            />
-                    )}
+                    <FormField
+                      control={form.control}
+                      name="dueDate"
+                      render={({ field }) => (
+                          <FormItem>
+                          <FormLabel>Due Date & Time</FormLabel>
+                          <FormControl>
+                              <Input type="datetime-local" {...field} value={field.value || ''} />
+                          </FormControl>
+                          <FormMessage />
+                          </FormItem>
+                      )}
+                    />
                     <FormField
                         control={form.control}
                         name="priority"
@@ -710,21 +722,19 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
                                 </FormItem>
                                 )}
                             />
-                            <div className="grid grid-cols-1 gap-4">
-                                <FormField
-                                    control={form.control}
-                                    name="dueTime"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                        <FormLabel>Due Time</FormLabel>
-                                        <FormControl>
-                                            <Input type="time" {...field} value={field.value || ''} />
-                                        </FormControl>
-                                        <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
+                            <FormField
+                                control={form.control}
+                                name="dueTime"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Due Time</FormLabel>
+                                    <FormControl>
+                                        <Input type="time" {...field} value={field.value || ''} />
+                                    </FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
                         </div>
 
                          <div className="grid grid-cols-1">
@@ -929,7 +939,3 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
     </>
   );
 }
-
-    
-
-      
