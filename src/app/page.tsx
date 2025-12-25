@@ -1,17 +1,13 @@
 
-
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import type { Task, FilterStatus, FilterPriority, TaskStatus, Subtask, Epic, Notification } from "@/lib/types";
+import type { Task, FilterStatus, FilterPriority, TaskStatus, Epic, Notification } from "@/lib/types";
 import { TaskForm } from "@/components/work-item/TaskForm";
 import { TaskList } from "@/components/work-item/TaskList";
 import { FilterControls } from "@/components/work-item/FilterControls";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TaskCalendar } from "@/components/work-item/TaskCalendar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { List, Calendar } from "lucide-react";
 import { database } from "@/lib/db";
 import { EpicList } from "@/components/work-item/EpicList";
 
@@ -35,7 +31,7 @@ export default function Home() {
     tasks.forEach(task => {
       const isOverdue = task.dueDate && task.dueDate < now && task.status !== 'Done' && task.status !== 'Cancelled';
       if (isOverdue) {
-        const existingNotification = notifications.find(n => n.taskId === task.id);
+        const existingNotification = notifications.find(n => n.taskId === task.id && n.message.includes("overdue"));
         if (!existingNotification) {
             database.addNotification({
               message: `Task "${task.title}" is overdue.`,
@@ -165,42 +161,30 @@ export default function Home() {
         <section>
             <EpicList epics={epics} />
         </section>
-
-        <Tabs defaultValue="list" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 max-w-sm mx-auto mb-6">
-            <TabsTrigger value="list"><List className="mr-2 h-4 w-4" />Task List</TabsTrigger>
-            <TabsTrigger value="calendar"><Calendar className="mr-2 h-4 w-4" />Calendar</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="list">
-            <section>
-              <Card>
-                <CardHeader>
-                  <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                    <CardTitle>Your Tasks</CardTitle>
-                  </div>
-                  <FilterControls
-                    statusFilter={statusFilter}
-                    setStatusFilter={setStatusFilter}
-                    priorityFilter={priorityFilter}
-                    setPriorityFilter={setPriorityFilter}
-                    sortBy={sortBy}
-                    setSortBy={setSortBy}
-                  />
-                </CardHeader>
-                <CardContent>
-                  <TaskList
-                    tasks={filteredAndSortedTasks}
-                    onTaskSelect={handleSelectTask}
-                  />
-                </CardContent>
-              </Card>
-            </section>
-          </TabsContent>
-          <TabsContent value="calendar">
-            <TaskCalendar tasks={tasks} onTaskSelect={handleSelectTask} />
-          </TabsContent>
-        </Tabs>
+        
+        <section>
+            <Card>
+            <CardHeader>
+                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                <CardTitle>Your Tasks</CardTitle>
+                </div>
+                <FilterControls
+                statusFilter={statusFilter}
+                setStatusFilter={setStatusFilter}
+                priorityFilter={priorityFilter}
+                setPriorityFilter={setPriorityFilter}
+                sortBy={sortBy}
+                setSortBy={setSortBy}
+                />
+            </CardHeader>
+            <CardContent>
+                <TaskList
+                tasks={filteredAndSortedTasks}
+                onTaskSelect={handleSelectTask}
+                />
+            </CardContent>
+            </Card>
+        </section>
     </div>
   );
 }

@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { SidebarProvider, Sidebar, SidebarTrigger, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarInset } from '@/components/ui/sidebar';
-import { LayoutDashboard, List, BarChart3, Settings } from 'lucide-react';
+import { LayoutDashboard, List, BarChart3, Settings, Calendar } from 'lucide-react';
 import { NotificationBell } from '../work-item/NotificationBell';
 import { database } from '@/lib/db';
 import { Notification } from '@/lib/types';
@@ -37,6 +37,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         if (pathname === '/') return 'Tasks';
         if (pathname.startsWith('/dashboard')) return 'Dashboard';
         if (pathname.startsWith('/reports')) return 'Reports';
+        if (pathname.startsWith('/calendar')) return 'Calendar';
         if (pathname.startsWith('/epics')) return 'Epic Details';
         if (pathname.startsWith('/tasks')) return 'Task Details';
         if (pathname.startsWith('/settings')) return 'Settings';
@@ -56,6 +57,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                                 <SidebarMenuButton href="/" isActive={pathname === '/'} tooltip="Tasks">
                                     <List />
                                     <span>Tasks</span>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                            <SidebarMenuItem>
+                                <SidebarMenuButton href="/calendar" isActive={pathname === '/calendar'} tooltip="Calendar">
+                                    <Calendar />
+                                    <span>Calendar</span>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
                              <SidebarMenuItem>
