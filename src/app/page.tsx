@@ -9,10 +9,9 @@ import { TaskForm } from "@/components/work-item/TaskForm";
 import { TaskList } from "@/components/work-item/TaskList";
 import { FilterControls } from "@/components/work-item/FilterControls";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TaskDashboard } from "@/components/work-item/TaskDashboard";
 import { TaskCalendar } from "@/components/work-item/TaskCalendar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LayoutDashboard, List, Calendar } from "lucide-react";
+import { List, Calendar } from "lucide-react";
 import { database } from "@/lib/db";
 import { EpicList } from "@/components/work-item/EpicList";
 
@@ -168,9 +167,8 @@ export default function Home() {
         </section>
 
         <Tabs defaultValue="list" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 max-w-md mx-auto mb-6">
+          <TabsList className="grid w-full grid-cols-2 max-w-sm mx-auto mb-6">
             <TabsTrigger value="list"><List className="mr-2 h-4 w-4" />Task List</TabsTrigger>
-            <TabsTrigger value="dashboard"><LayoutDashboard className="mr-2 h-4 w-4" />Dashboard</TabsTrigger>
             <TabsTrigger value="calendar"><Calendar className="mr-2 h-4 w-4" />Calendar</TabsTrigger>
           </TabsList>
           
@@ -198,9 +196,6 @@ export default function Home() {
                 </CardContent>
               </Card>
             </section>
-          </TabsContent>
-          <TabsContent value="dashboard">
-            <TaskDashboard tasks={tasks} />
           </TabsContent>
           <TabsContent value="calendar">
             <TaskCalendar tasks={tasks} onTaskSelect={handleSelectTask} />

@@ -33,6 +33,16 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
     const pathname = usePathname();
 
+    const getPageTitle = () => {
+        if (pathname === '/') return 'Tasks';
+        if (pathname.startsWith('/dashboard')) return 'Dashboard';
+        if (pathname.startsWith('/reports')) return 'Reports';
+        if (pathname.startsWith('/epics')) return 'Epic Details';
+        if (pathname.startsWith('/tasks')) return 'Task Details';
+        if (pathname.startsWith('/settings')) return 'Settings';
+        return 'Work Item';
+    }
+
     return (
         <SidebarProvider>
             <Sidebar>
@@ -43,7 +53,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     <div className="flex-1 overflow-y-auto">
                         <SidebarMenu>
                             <SidebarMenuItem>
-                                <SidebarMenuButton href="/" isActive={pathname === '/'} tooltip="Dashboard">
+                                <SidebarMenuButton href="/" isActive={pathname === '/'} tooltip="Tasks">
+                                    <List />
+                                    <span>Tasks</span>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                             <SidebarMenuItem>
+                                <SidebarMenuButton href="/dashboard" isActive={pathname === '/dashboard'} tooltip="Dashboard">
                                     <LayoutDashboard />
                                     <span>Dashboard</span>
                                 </SidebarMenuButton>
@@ -74,7 +90,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                       <div className="flex items-center gap-4">
                         <SidebarTrigger className="md:hidden" />
                         <h1 className="text-4xl font-bold tracking-tight font-headline">
-                            {pathname === '/' ? 'Work Item' : pathname.startsWith('/reports') ? 'Reports' : pathname.substring(1).charAt(0).toUpperCase() + pathname.slice(2)}
+                           {getPageTitle()}
                         </h1>
                       </div>
                       <NotificationBell 
@@ -91,9 +107,4 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </SidebarInset>
         </SidebarProvider>
     );
-}
-
-// Helper to get active state for sidebar items
-const isActive = (pathname: string, href: string) => {
-    return pathname === href;
 }
