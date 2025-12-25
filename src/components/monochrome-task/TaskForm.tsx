@@ -149,9 +149,9 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
       </CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)}>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <FormField
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+               <FormField
                 control={form.control}
                 name="taskType"
                 render={({ field }) => (
@@ -178,7 +178,7 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
                 control={form.control}
                 name="title"
                 render={({ field }) => (
-                  <FormItem className="sm:col-span-2">
+                  <FormItem className="md:col-span-3">
                     <FormLabel>Title</FormLabel>
                     <FormControl>
                       <Input placeholder={isEpic ? "e.g., User Authentication Feature" : "e.g., Finish the report"} {...field} />
@@ -203,8 +203,8 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
             />
 
             {!isEpic && (
-              <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
                       name="assignee"
@@ -212,7 +212,7 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
                         <FormItem>
                           <FormLabel>Assignee</FormLabel>
                           <FormControl>
-                            <Input placeholder="e.g., Jane Doe" {...field} />
+                            <Input placeholder="e.g., Jane Doe" {...field} value={field.value || ''} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -225,14 +225,14 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
                         <FormItem>
                           <FormLabel>Reporter</FormLabel>
                           <FormControl>
-                            <Input placeholder="e.g., John Smith" {...field} />
+                            <Input placeholder="e.g., John Smith" {...field} value={field.value || ''}/>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                 </div>
-                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                      <FormField
                         control={form.control}
                         name="plannedStartDate"
@@ -282,7 +282,7 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
                     />
                  </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
                   <FormField
                     control={form.control}
                     name="priority"
@@ -307,7 +307,7 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
                     )}
                   />
                   {!isRecurring && (
-                    <>
+                    <div className="grid grid-cols-2 gap-4">
                         <FormField
                             control={form.control}
                             name="dueDate"
@@ -355,18 +355,18 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
                                 </FormItem>
                             )}
                             />
-                    </>
+                    </div>
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="parentId"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Parent Epic</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value || 'none'}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Assign to an epic (optional)" />
@@ -397,7 +397,7 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
                                 variant="outline"
                                 role="combobox"
                                 className={cn(
-                                  "w-full justify-between",
+                                  "w-full justify-between h-10",
                                   !field.value?.length && "text-muted-foreground"
                                 )}
                               >
@@ -450,12 +450,12 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
                 </div>
 
 
-                <div className="flex flex-wrap gap-4">
+                <div className="flex flex-wrap items-center gap-x-8 gap-y-4 pt-2">
                     <FormField
                       control={form.control}
                       name="reviewRequired"
                       render={({ field }) => (
-                        <FormItem className="flex flex-row items-center space-x-2 pt-5">
+                        <FormItem className="flex flex-row items-center space-x-2">
                           <FormControl>
                             <Switch
                               id="review-required"
@@ -463,7 +463,7 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
                               onCheckedChange={field.onChange}
                             />
                           </FormControl>
-                          <FormLabel htmlFor="review-required">Review Required</FormLabel>
+                          <FormLabel htmlFor="review-required" className="!mt-0">Review Required</FormLabel>
                         </FormItem>
                       )}
                     />
@@ -471,7 +471,7 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
                       control={form.control}
                       name="isCritical"
                       render={({ field }) => (
-                        <FormItem className="flex flex-row items-center space-x-2 pt-5">
+                        <FormItem className="flex flex-row items-center space-x-2">
                           <FormControl>
                             <Switch
                               id="critical-task"
@@ -479,7 +479,7 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
                               onCheckedChange={field.onChange}
                             />
                           </FormControl>
-                          <FormLabel htmlFor="critical-task">Critical</FormLabel>
+                          <FormLabel htmlFor="critical-task" className="!mt-0">Critical</FormLabel>
                         </FormItem>
                       )}
                     />
@@ -487,7 +487,7 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
                         control={form.control}
                         name="isRecurring"
                         render={({ field }) => (
-                            <FormItem className="flex flex-row items-center space-x-2 pt-5">
+                            <FormItem className="flex flex-row items-center space-x-2">
                                 <FormControl>
                                     <Switch
                                     id="recurring-task"
@@ -495,15 +495,14 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
                                     onCheckedChange={field.onChange}
                                     />
                                 </FormControl>
-                                <FormLabel htmlFor="recurring-task">Recurring Task</FormLabel>
+                                <FormLabel htmlFor="recurring-task" className="!mt-0">Recurring Task</FormLabel>
                             </FormItem>
                         )}
                     />
                 </div>
 
                 {isRecurring && (
-                  <div className="space-y-4 pt-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-lg border p-3 shadow-sm">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 rounded-lg border p-4 pt-2 shadow-sm">
                         <FormField
                             control={form.control}
                             name="recurrence.interval"
@@ -562,9 +561,8 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
                             )}
                         />
                     </div>
-                  </div>
                 )}
-              </>
+              </div>
             )}
           </CardContent>
           <CardFooter>
@@ -578,5 +576,3 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
     </Card>
   );
 }
-
-    
