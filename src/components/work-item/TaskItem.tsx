@@ -32,6 +32,8 @@ export function TaskItem({ task, onTaskSelect }: TaskItemProps) {
   const { label, icon: PriorityIcon } = priorityConfig[task.priority];
   const { icon: TypeIcon, color: typeColor } = taskTypeConfig[task.taskType];
   const isCompleted = task.status === 'Done' || task.status === 'Cancelled';
+  const isOverdue = task.dueDate && new Date() > task.dueDate && !isCompleted;
+
 
   return (
     <TableRow
@@ -51,7 +53,7 @@ export function TaskItem({ task, onTaskSelect }: TaskItemProps) {
         </div>
       </TableCell>
       <TableCell className="hidden sm:table-cell text-center">
-        <Badge variant={task.status === 'Done' ? 'default' : 'secondary'}>{task.status}</Badge>
+        <Badge variant={task.status === 'Done' ? 'default' : isOverdue ? 'destructive' : 'secondary'}>{task.status}</Badge>
       </TableCell>
       <TableCell className="hidden sm:table-cell text-center">
         <Badge
@@ -68,7 +70,8 @@ export function TaskItem({ task, onTaskSelect }: TaskItemProps) {
       <TableCell
         className={cn(
           "text-right text-sm text-muted-foreground transition-colors",
-          !isCompleted && "text-foreground"
+          !isCompleted && "text-foreground",
+          isOverdue && "text-destructive font-bold"
         )}
       >
         {task.dueDate ? format(task.dueDate, "MMM d, yyyy") : "No date"}

@@ -87,6 +87,11 @@ export default function TaskDetailsPage() {
     });
   }, [task]);
 
+  const isOverdue = useMemo(() => {
+    if (!task || !task.dueDate) return false;
+    return new Date() > task.dueDate && task.status !== 'Done' && task.status !== 'Cancelled';
+  }, [task]);
+
 
   if (!task) {
     return <div>Loading...</div>; // Or a proper skeleton loader
@@ -320,6 +325,16 @@ export default function TaskDetailsPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <main className="lg:col-span-2 space-y-6">
+                {isOverdue && (
+                     <Alert variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Task Overdue</AlertTitle>
+                        <AlertDescription>
+                            This task is past its due date of {format(task.dueDate!, 'PP')}.
+                        </AlertDescription>
+                    </Alert>
+                )}
+
                 {task.extensionRequest?.status === 'pending' && isReporter && (
                     <Alert variant="default" className="border-yellow-400 bg-yellow-50">
                         <Clock className="h-4 w-4 !text-yellow-600" />
@@ -518,7 +533,9 @@ export default function TaskDetailsPage() {
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="text-muted-foreground">Due Date</span>
-                            <span>{task.dueDate ? format(task.dueDate, 'PPp') : 'Not set'}</span>
+                            <span className={cn(isOverdue && 'text-destructive font-bold')}>
+                                {task.dueDate ? format(task.dueDate, 'PPp') : 'Not set'}
+                            </span>
                         </div>
                          <div className="flex justify-between items-center">
                             <span className="text-muted-foreground">Duration</span>

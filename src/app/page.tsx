@@ -14,16 +14,34 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LayoutDashboard, List, Calendar } from "lucide-react";
 import { database } from "@/lib/db";
 import { EpicList } from "@/components/work-item/EpicList";
+import { useToast } from "@/hooks/use-toast";
 
 
 export default function Home() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [epics, setEpics] = useState<Epic[]>([]);
+  const [notifiedTasks, setNotifiedTasks] = useState<Set<string>>(new Set());
+  const { toast } = useToast();
 
   useEffect(() => {
     setTasks(database.getTasks());
     setEpics(database.getEpics());
   }, []);
+
+  useEffect(() => {
+    const now = new Date();
+    tasks.forEach(task => {
+      const isOverdue = task.dueDate && task.dueDate < now && task.status !== 'Done' && task.status !== 'Cancelled';
+      if (isOverdue && !notifiedTasks.has(task.id)) {
+        toast({
+          variant: "destructive",
+          title: "Task Overdue",
+          description: `The task "${task.title}" is delayed.`,
+        });
+        setNotifiedTasks(prev => new Set(prev).add(task.id));
+      }
+    });
+  }, [tasks, notifiedTasks, toast]);
 
   const router = useRouter();
 
