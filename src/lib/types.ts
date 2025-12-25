@@ -115,3 +115,5 @@ export type AppDatabase = {
   collections: Collection[];
   notifications: Notification[];
 };
+
+    

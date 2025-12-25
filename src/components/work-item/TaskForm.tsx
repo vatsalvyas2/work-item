@@ -5,7 +5,7 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format, parseISO } from "date-fns";
-import { CalendarIcon, Plus, Check, ChevronsUpDown, Mic, Square, Loader2, Send } from "lucide-react";
+import { CalendarIcon, Plus, Check, ChevronsUpDown, Mic, Square, Loader2, Send, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -118,6 +118,8 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const WEEK_ORDER: ('First' | 'Second' | 'Third' | 'Fourth' | 'Last')[] = ['First', 'Second', 'Third', 'Fourth', 'Last'];
 
 
 interface TaskFormProps {
@@ -177,6 +179,24 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
       requester: "",
       dueDate: "",
     },
+  });
+
+  const { fields: monthlyWeekdayFields, append: appendMonthlyWeekday, remove: removeMonthlyWeekday } = useFieldArray({
+      control: form.control,
+      name: "recurrence.monthly.weekdays"
+  });
+   const { fields: monthlyDateFields, append: appendMonthlyDate, remove: removeMonthlyDate } = useFieldArray({
+      control: form.control,
+      name: "recurrence.monthly.dates"
+  });
+
+  const { fields: yearlyWeekdayFields, append: appendYearlyWeekday, remove: removeYearlyWeekday } = useFieldArray({
+      control: form.control,
+      name: "recurrence.yearly.weekdays"
+  });
+  const { fields: yearlyDateFields, append: appendYearlyDate, remove: removeYearlyDate } = useFieldArray({
+      control: form.control,
+      name: "recurrence.yearly.dates"
   });
 
   const onAiSubmit = (result: Partial<FormValues>) => {
@@ -313,12 +333,12 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
         daysOfWeek: taskData.recurrence.daysOfWeek?.map(d => parseInt(d)),
         monthly: {
             ...taskData.recurrence.monthly!,
-            weekdays: taskData.recurrence.monthly!.weekdays!.map(wd => ({...wd, day: parseInt(wd.day)}))
+            weekdays: taskData.recurrence.monthly!.weekdays?.map(wd => ({...wd, day: parseInt(wd.day)}))
         },
         yearly: {
             ...taskData.recurrence.yearly!,
-            dates: taskData.recurrence.yearly!.dates!.map(d => ({ month: d.getMonth(), day: d.getDate() })),
-            weekdays: taskData.recurrence.yearly!.weekdays!.map(wd => ({...wd, day: parseInt(wd.day), month: parseInt(wd.month) }))
+            dates: taskData.recurrence.yearly!.dates,
+            weekdays: taskData.recurrence.yearly!.weekdays?.map(wd => ({...wd, day: parseInt(wd.day), month: parseInt(wd.month) }))
         }
     } : undefined;
 
@@ -335,6 +355,9 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
   };
 
   const availableTasksForDepencency = tasks.filter(t => t.status !== 'Done' && t.status !== 'Cancelled');
+  const recurrenceInterval = form.watch("recurrence.interval");
+  const monthlyMode = form.watch("recurrence.monthly.mode");
+  const yearlyMode = form.watch("recurrence.yearly.mode");
   
   return (
     <>
@@ -462,43 +485,43 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-                  {!isRecurring && (
+                    {!isRecurring && (
+                        <FormField
+                            control={form.control}
+                            name="dueDate"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Due Date & Time</FormLabel>
+                                <FormControl>
+                                    <Input type="datetime-local" {...field} value={field.value || ''} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                            />
+                    )}
                     <FormField
                         control={form.control}
-                        name="dueDate"
+                        name="priority"
                         render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Due Date & Time</FormLabel>
+                        <FormItem>
+                            <FormLabel>Priority</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                             <FormControl>
-                                <Input type="datetime-local" {...field} value={field.value || ''} />
+                                <SelectTrigger>
+                                <SelectValue placeholder="Select priority" />
+                                </SelectTrigger>
                             </FormControl>
+                            <SelectContent>
+                                <SelectItem value="low">Low</SelectItem>
+                                <SelectItem value="medium">Medium</SelectItem>
+                                <SelectItem value="high">High</SelectItem>
+                            </SelectContent>
+                            </Select>
                             <FormMessage />
-                            </FormItem>
+                        </FormItem>
                         )}
-                        />
-                  )}
-                  <FormField
-                    control={form.control}
-                    name="priority"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Priority</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select priority" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="low">Low</SelectItem>
-                            <SelectItem value="medium">Medium</SelectItem>
-                            <SelectItem value="high">High</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                    />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -705,7 +728,7 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
                             />
                         </div>
                         
-                        {form.watch("recurrence.interval") === 'weekly' && (
+                        {recurrenceInterval === 'weekly' && (
                              <FormField
                                 control={form.control}
                                 name="recurrence.daysOfWeek"
@@ -723,6 +746,137 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
                                     </FormItem>
                                 )}
                             />
+                        )}
+
+                        {recurrenceInterval === 'monthly' && (
+                            <div className="space-y-2">
+                                <FormField
+                                    control={form.control}
+                                    name="recurrence.monthly.mode"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Mode</FormLabel>
+                                            <Select onValueChange={field.onChange} value={field.value}>
+                                                <FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="onDate">On Date</SelectItem>
+                                                    <SelectItem value="onWeekday">On Weekday</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </FormItem>
+                                    )}
+                                />
+                                {monthlyMode === 'onDate' && (
+                                    <div className="space-y-2">
+                                        <Label>Date of the month</Label>
+                                        <div className="grid grid-cols-7 gap-1">
+                                            {Array.from({length: 31}, (_, i) => i + 1).map(day => (
+                                                <Button
+                                                    key={day}
+                                                    type="button"
+                                                    variant={form.getValues('recurrence.monthly.dates')?.includes(day) ? 'default' : 'outline'}
+                                                    onClick={() => {
+                                                        const currentDates = form.getValues('recurrence.monthly.dates') || [];
+                                                        if (currentDates.includes(day)) {
+                                                            form.setValue('recurrence.monthly.dates', currentDates.filter(d => d !== day));
+                                                        } else {
+                                                            form.setValue('recurrence.monthly.dates', [...currentDates, day].sort((a,b) => a-b));
+                                                        }
+                                                    }}
+                                                    className="h-8 w-8 p-0"
+                                                >{day}</Button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                                {monthlyMode === 'onWeekday' && (
+                                    <div className="space-y-2">
+                                        {monthlyWeekdayFields.map((field, index) => (
+                                            <div key={field.id} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-center">
+                                                <FormField control={form.control} name={`recurrence.monthly.weekdays.${index}.order`} render={({field}) => (
+                                                    <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent>
+                                                        {WEEK_ORDER.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                                                    </SelectContent></Select>
+                                                )}/>
+                                                <FormField control={form.control} name={`recurrence.monthly.weekdays.${index}.day`} render={({field}) => (
+                                                    <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent>
+                                                        {WEEKDAYS.map((d, i) => <SelectItem key={d} value={i.toString()}>{d}</SelectItem>)}
+                                                    </SelectContent></Select>
+                                                )}/>
+                                                <Button type="button" variant="ghost" size="icon" onClick={() => removeMonthlyWeekday(index)}><Trash2 className="h-4 w-4"/></Button>
+                                            </div>
+                                        ))}
+                                        <Button type="button" variant="outline" size="sm" onClick={() => appendMonthlyWeekday({order: 'First', day: '1'})}>Add Rule</Button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {recurrenceInterval === 'yearly' && (
+                            <div className="space-y-2">
+                                <FormField
+                                    control={form.control}
+                                    name="recurrence.yearly.mode"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Mode</FormLabel>
+                                            <Select onValueChange={field.onChange} value={field.value}>
+                                                <FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="onDate">On Date</SelectItem>
+                                                    <SelectItem value="onWeekday">On Weekday</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </FormItem>
+                                    )}
+                                />
+                                {yearlyMode === 'onDate' && (
+                                     <div className="space-y-2">
+                                        {yearlyDateFields.map((field, index) => (
+                                            <div key={field.id} className="flex gap-2 items-center">
+                                                <FormField
+                                                    control={form.control}
+                                                    name={`recurrence.yearly.dates.${index}`}
+                                                    render={({ field }) => (
+                                                        <Popover><PopoverTrigger asChild><FormControl>
+                                                            <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}>
+                                                                <CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "dd MMM") : <span>Pick a date</span>}
+                                                            </Button>
+                                                        </FormControl></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent></Popover>
+                                                    )}
+                                                />
+                                                <Button type="button" variant="ghost" size="icon" onClick={() => removeYearlyDate(index)}><Trash2 className="h-4 w-4"/></Button>
+                                            </div>
+                                        ))}
+                                        <Button type="button" variant="outline" size="sm" onClick={() => appendYearlyDate(new Date())}>Add Date</Button>
+                                    </div>
+                                )}
+                                {yearlyMode === 'onWeekday' && (
+                                    <div className="space-y-2">
+                                        {yearlyWeekdayFields.map((field, index) => (
+                                            <div key={field.id} className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 items-center">
+                                                <FormField control={form.control} name={`recurrence.yearly.weekdays.${index}.order`} render={({field}) => (
+                                                    <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent>
+                                                        {WEEK_ORDER.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                                                    </SelectContent></Select>
+                                                )}/>
+                                                <FormField control={form.control} name={`recurrence.yearly.weekdays.${index}.day`} render={({field}) => (
+                                                    <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent>
+                                                        {WEEKDAYS.map((d, i) => <SelectItem key={d} value={i.toString()}>{d}</SelectItem>)}
+                                                    </SelectContent></Select>
+                                                )}/>
+                                                <FormField control={form.control} name={`recurrence.yearly.weekdays.${index}.month`} render={({field}) => (
+                                                    <Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue/></SelectTrigger></FormControl><SelectContent>
+                                                        {MONTHS.map((m, i) => <SelectItem key={m} value={i.toString()}>{m}</SelectItem>)}
+                                                    </SelectContent></Select>
+                                                )}/>
+                                                <Button type="button" variant="ghost" size="icon" onClick={() => removeYearlyWeekday(index)}><Trash2 className="h-4 w-4"/></Button>
+                                            </div>
+                                        ))}
+                                        <Button type="button" variant="outline" size="sm" onClick={() => appendYearlyWeekday({order: 'First', day: '1', month: '0'})}>Add Rule</Button>
+                                    </div>
+                                )}
+                            </div>
                         )}
                     </div>
                 )}
