@@ -15,6 +15,7 @@ import { Mic, Square, Loader2, Info } from 'lucide-react';
 import { Task, Epic } from '@/lib/types';
 import { ScrollArea } from '../ui/scroll-area';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { transcribeAudio } from '@/ai/flows/transcribe-audio-flow';
 
 interface VoiceTaskDialogProps {
   isOpen: boolean;
@@ -33,70 +34,80 @@ export function VoiceTaskDialog({
 }: VoiceTaskDialogProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [isSupported, setIsSupported] = useState(true);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
-    const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      setIsSupported(false);
-      return;
-    }
-
-    const recognition = new SpeechRecognition();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = 'en-US';
-
-    recognition.onresult = (event) => {
-      let interimTranscript = '';
-      let finalTranscript = '';
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript;
-        } else {
-          interimTranscript += event.results[i][0].transcript;
+    if (typeof window !== 'undefined') {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            setIsSupported(false);
         }
-      }
-      setTranscript(finalTranscript + interimTranscript);
-    };
+    }
+  }, []);
 
-    recognition.onerror = (event) => {
-      console.error('Speech recognition error', event.error);
-      setIsRecording(false);
-    };
+  const startRecording = async () => {
+    setTranscript('');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+      audioChunksRef.current = [];
 
-    recognition.onend = () => {
-      if (isRecording) {
-        // If it stops unexpectedly, try to restart it
-        recognition.start();
-      }
-    };
-    
-    recognitionRef.current = recognition;
-  }, [isRecording]);
+      recorder.ondataavailable = (event) => {
+        audioChunksRef.current.push(event.data);
+      };
+
+      recorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        
+        // Convert Blob to Base64 Data URI
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = async () => {
+            const base64Audio = reader.result as string;
+            setIsTranscribing(true);
+            try {
+                const transcription = await transcribeAudio({ audioDataUri: base64Audio });
+                setTranscript(transcription);
+            } catch (error) {
+                console.error("Transcription error:", error);
+                setTranscript("Sorry, I couldn't transcribe that. Please try again.");
+            } finally {
+                setIsTranscribing(false);
+            }
+        };
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      recorder.start();
+      setIsRecording(true);
+    } catch (err) {
+      console.error("Error accessing microphone:", err);
+      setIsSupported(false); 
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+    }
+    setIsRecording(false);
+  };
 
   const handleToggleRecording = () => {
     if (isRecording) {
-      recognitionRef.current?.stop();
-      setIsRecording(false);
+      stopRecording();
     } else {
-      setTranscript('');
-      recognitionRef.current?.start();
-      setIsRecording(true);
+      startRecording();
     }
   };
 
   const handleSubmit = async () => {
     if (!transcript.trim()) return;
-
-    // Ensure recording is stopped before processing
-    if (isRecording) {
-      recognitionRef.current?.stop();
-      setIsRecording(false);
-    }
 
     setIsProcessing(true);
     await onAiSubmit(transcript);
@@ -105,12 +116,15 @@ export function VoiceTaskDialog({
   };
 
   const handleClose = () => {
-     if (isRecording) {
-      recognitionRef.current?.stop();
-      setIsRecording(false);
+    if (isRecording) {
+      stopRecording();
     }
     onOpenChange(false);
-  }
+    setTranscript('');
+  };
+
+
+  const isSubmitDisabled = !transcript.trim() || isProcessing || isRecording || isTranscribing;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -118,16 +132,16 @@ export function VoiceTaskDialog({
         <DialogHeader>
           <DialogTitle>Fill Task with AI</DialogTitle>
           <DialogDescription>
-            Click the microphone and describe the task you want to create. The AI will fill out the form for you.
+            Click the microphone, record your voice, and the AI will transcribe it. You can then submit it to pre-fill the form.
           </DialogDescription>
         </DialogHeader>
 
         {!isSupported && (
             <Alert variant="destructive">
                 <Info className="h-4 w-4" />
-                <AlertTitle>Browser Not Supported</AlertTitle>
+                <AlertTitle>Audio Recording Not Supported</AlertTitle>
                 <AlertDescription>
-                    Your browser does not support the Web Speech API. Please try Google Chrome or another supported browser.
+                    Your browser does not support audio recording or microphone access was denied. Please use a modern browser and grant microphone permissions.
                 </AlertDescription>
             </Alert>
         )}
@@ -171,10 +185,17 @@ export function VoiceTaskDialog({
             </Button>
         </div>
 
-        {transcript && (
-          <div className="mt-4 p-3 bg-muted rounded-md text-sm">
+        {(transcript || isTranscribing) && (
+          <div className="mt-4 p-3 bg-muted rounded-md text-sm min-h-[6rem]">
             <p className="font-semibold mb-1">Transcript:</p>
-            <p className="text-muted-foreground">{transcript}</p>
+            {isTranscribing ? (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Transcribing audio...</span>
+                </div>
+            ) : (
+                <p className="text-muted-foreground">{transcript}</p>
+            )}
           </div>
         )}
         
@@ -182,7 +203,7 @@ export function VoiceTaskDialog({
           <Button variant="outline" onClick={handleClose}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={!transcript.trim() || isProcessing || isRecording}>
+          <Button onClick={handleSubmit} disabled={isSubmitDisabled}>
             {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {isProcessing ? "Processing..." : "Fill Form"}
           </Button>
