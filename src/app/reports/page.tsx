@@ -17,7 +17,7 @@ export default function ReportsPage() {
   return (
     <div className="container mx-auto p-4 sm:p-6 md:p-8">
       <header className="mb-8">
-        <h1 className="text-4xl font-bold tracking-tight">Reports & Dashboards</h1>
+        <h1 className="text-4xl font-bold tracking-tight">Reports</h1>
         <p className="text-muted-foreground mt-2">
           Analyze your team's productivity and track progress.
         </p>
