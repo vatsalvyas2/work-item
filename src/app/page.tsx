@@ -9,7 +9,8 @@ import { TaskList } from "@/components/work-item/TaskList";
 import { FilterControls } from "@/components/work-item/FilterControls";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { database } from "@/lib/db";
-import { CollectionList } from "@/components/work-item/CollectionList";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Book } from "lucide-react";
 
 
 export default function Home() {
@@ -131,7 +132,7 @@ export default function Home() {
 
     filtered.sort((a, b) => {
       if (sortBy === "priority") {
-        const priorityOrder = { high: 0, medium: 1, low: 2, none: 3 };
+        const priorityOrder = { high: 0, medium: 1, low: 2 };
         const priorityComparison = priorityOrder[a.priority] - priorityOrder[b.priority];
         if (priorityComparison !== 0) return priorityComparison;
       }
@@ -150,6 +151,29 @@ export default function Home() {
 
     return filtered;
   }, [tasks, statusFilter, priorityFilter, sortBy]);
+  
+  const tasksByCollection = useMemo(() => {
+    const grouped: Record<string, Task[]> = {};
+    const standalone: Task[] = [];
+
+    filteredAndSortedTasks.forEach(task => {
+        if (task.parentId) {
+            if (!grouped[task.parentId]) {
+                grouped[task.parentId] = [];
+            }
+            grouped[task.parentId].push(task);
+        } else {
+            standalone.push(task);
+        }
+    });
+
+    return { grouped, standalone };
+  }, [filteredAndSortedTasks]);
+
+  const collectionOrder = useMemo(() => {
+      return [...collections].sort((a, b) => a.title.localeCompare(b.title));
+  }, [collections]);
+
 
   return (
     <div className="space-y-8">
@@ -159,10 +183,6 @@ export default function Home() {
             collections={collections}
             tasks={tasks}
           />
-        </section>
-
-        <section>
-            <CollectionList collections={collections} />
         </section>
 
         <section>
@@ -181,10 +201,44 @@ export default function Home() {
                 />
             </CardHeader>
             <CardContent>
-                <TaskList
-                tasks={filteredAndSortedTasks}
-                onTaskSelect={handleSelectTask}
-                />
+                <Accordion type="multiple" className="w-full space-y-4" defaultValue={collectionOrder.map(c => c.id)}>
+                    {collectionOrder.map(collection => {
+                        const collectionTasks = tasksByCollection.grouped[collection.id] || [];
+                        if (collectionTasks.length === 0) return null;
+                        
+                        return (
+                            <AccordionItem value={collection.id} key={collection.id} className="border-none">
+                                <Card>
+                                    <AccordionTrigger className="p-6 text-lg hover:no-underline">
+                                        <div className="flex items-center gap-3">
+                                            <Book className="h-6 w-6 text-purple-600" />
+                                            <div>
+                                                <h3 className="font-semibold">{collection.title}</h3>
+                                                <p className="text-sm text-muted-foreground font-normal">{collection.description}</p>
+                                            </div>
+                                        </div>
+                                    </AccordionTrigger>
+                                    <AccordionContent className="px-6 pb-6">
+                                       <TaskList
+                                            tasks={collectionTasks}
+                                            onTaskSelect={handleSelectTask}
+                                        />
+                                    </AccordionContent>
+                                </Card>
+                            </AccordionItem>
+                        )
+                    })}
+                </Accordion>
+
+                {tasksByCollection.standalone.length > 0 && (
+                    <div className="mt-8">
+                         <h3 className="text-lg font-semibold mb-4 pl-2">Standalone Work Items</h3>
+                         <TaskList
+                            tasks={tasksByCollection.standalone}
+                            onTaskSelect={handleSelectTask}
+                         />
+                    </div>
+                )}
             </CardContent>
             </Card>
         </section>
