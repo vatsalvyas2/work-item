@@ -1,11 +1,11 @@
 
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format, parseISO } from "date-fns";
-import { CalendarIcon, Plus, Check, ChevronsUpDown, Sparkles, Mic, Square, Loader2, Send } from "lucide-react";
+import { CalendarIcon, Plus, Check, ChevronsUpDown, Mic, Square, Loader2, Send } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -47,6 +47,7 @@ import { Textarea } from "../ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "../ui/toggle-group";
 import { createTaskFromVoice } from "@/ai/flows/create-task-flow";
 import { transcribeAudio } from "@/ai/flows/transcribe-audio-flow";
+import { Label } from "@/components/ui/label";
 
 
 const monthlyWeekdaySchema = z.object({
@@ -85,20 +86,18 @@ const recurrenceSchema = z.object({
 const formSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters."),
   description: z.string().optional(),
-  taskType: z.enum(['Story', 'Task', 'Bug', 'Epic']),
   dueDate: z.date().optional(),
   dueTime: z.string().optional(),
-  priority: z.enum(["low", "medium", "high", "none"]),
+  priority: z.enum(["low", "medium", "high"]),
   isCritical: z.boolean().default(false),
   reviewRequired: z.boolean().default(false),
+  reviewer: z.string().optional(),
   isRecurring: z.boolean().default(false),
   recurrence: recurrenceSchema,
   parentId: z.string().optional(),
   dependsOn: z.array(z.string()).optional(),
   assignee: z.string().optional(),
   reporter: z.string().optional(),
-  plannedStartDate: z.date().optional(),
-  duration: z.number().optional(),
 }).refine(data => {
     if (data.isRecurring) {
         return !!data.recurrence?.interval;
@@ -107,6 +106,14 @@ const formSchema = z.object({
 }, {
     message: "Recurrence interval is required for recurring tasks.",
     path: ["recurrence.interval"],
+}).refine(data => {
+    if (data.reviewRequired) {
+        return !!data.reviewer && data.reviewer.length > 0;
+    }
+    return true;
+}, {
+    message: "Reviewer name is required.",
+    path: ["reviewer"],
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -129,6 +136,7 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
   const [transcript, setTranscript] = useState('');
   const [isMicSupported, setIsMicSupported] = useState(true);
   const [recordingTime, setRecordingTime] = useState(0);
+  const [isEpic, setIsEpic] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -147,10 +155,10 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
     defaultValues: {
       title: "",
       description: "",
-      taskType: "Task",
       priority: "medium",
       isCritical: false,
       reviewRequired: false,
+      reviewer: "",
       isRecurring: false,
       recurrence: {
         interval: 'daily',
@@ -179,14 +187,11 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
 
       if (result.title) form.setValue("title", result.title);
       if (result.description) form.setValue("description", result.description);
-      if (result.taskType) form.setValue("taskType", result.taskType);
       if (result.priority) form.setValue("priority", result.priority);
       if (result.assignee) form.setValue("assignee", result.assignee);
       if (result.reporter) form.setValue("reporter", result.reporter);
-      if (result.plannedStartDate) form.setValue("plannedStartDate", result.plannedStartDate);
       if (result.dueDate) form.setValue("dueDate", result.dueDate);
       if (result.dueTime) form.setValue("dueTime", result.dueTime);
-      if (result.duration) form.setValue("duration", result.duration);
       if (result.reviewRequired) form.setValue("reviewRequired", result.reviewRequired);
       if (result.isCritical) form.setValue("isCritical", result.isCritical);
       if (result.parentId) form.setValue("parentId", result.parentId);
@@ -272,11 +277,10 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
       
       const populatedResult = {
         ...result,
-        plannedStartDate: result.plannedStartDate ? parseISO(result.plannedStartDate) : undefined,
         dueDate: result.dueDate ? parseISO(result.dueDate) : undefined,
       };
       
-      onAiSubmit(populatedResult);
+      onAiSubmit(populatedResult as Partial<FormValues>);
       setTranscript('');
       setIsVoicePanelOpen(false);
     } catch (error) {
@@ -292,11 +296,11 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
     return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
   };
 
-  const taskType = form.watch("taskType");
   const isRecurring = form.watch("isRecurring");
+  const reviewRequired = form.watch("reviewRequired");
   
   const handleSubmit = (data: FormValues) => {
-    if (data.taskType === 'Epic') {
+    if (isEpic) {
         const { title, description } = data;
         onEpicSubmit({ title, description: description || '' });
     } else {
@@ -308,8 +312,6 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
             finalDueDate = new Date(taskData.dueDate);
             finalDueDate.setHours(hours, minutes);
         }
-
-        const firstDueDate = taskData.isRecurring ? taskData.plannedStartDate : finalDueDate;
 
         const recurrencePayload = taskData.isRecurring && taskData.recurrence ? {
             ...taskData.recurrence,
@@ -327,28 +329,26 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
 
         onTaskSubmit({
           ...taskData,
+          taskType: 'Task', // Defaulting to 'Task' as type is removed
           parentId: taskData.parentId === 'none' ? undefined : taskData.parentId,
-          taskType: taskData.taskType as TaskType,
-          dueDate: firstDueDate,
+          dueDate: finalDueDate,
           recurrence: recurrencePayload,
-          duration: data.duration ? Number(data.duration) : undefined,
         });
     }
 
     form.reset();
   };
 
-  const isEpic = taskType === 'Epic';
   const availableTasksForDepencency = tasks.filter(t => t.status !== 'Done' && t.status !== 'Cancelled');
   
   return (
     <>
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Create a New {isEpic ? 'Epic' : 'Task'}</CardTitle>
+        <CardTitle>Create a New Work Item</CardTitle>
          <Button variant="outline" onClick={() => setIsVoicePanelOpen(prev => !prev)}>
-            <Sparkles className="mr-2 h-4 w-4" />
-            Auto Fill
+            <Mic className="mr-2 h-4 w-4" />
+            Auto Fill by Voice
         </Button>
       </CardHeader>
       <Form {...form}>
@@ -393,35 +393,16 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
               </CardContent>
             )}
           <CardContent className="space-y-6 pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-               <FormField
-                control={form.control}
-                name="taskType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Type</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="Task">Task</SelectItem>
-                        <SelectItem value="Story">Story</SelectItem>
-                        <SelectItem value="Bug">Bug</SelectItem>
-                        <SelectItem value="Epic">Epic</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <div className="flex items-center space-x-2">
+                <Switch id="epic-switch" checked={isEpic} onCheckedChange={setIsEpic} />
+                <Label htmlFor="epic-switch">Create an Epic</Label>
+            </div>
+
               <FormField
                 control={form.control}
                 name="title"
                 render={({ field }) => (
-                  <FormItem className="md:col-span-3">
+                  <FormItem>
                     <FormLabel>Title</FormLabel>
                     <FormControl>
                       <Input placeholder={isEpic ? "e.g., User Authentication Feature" : "e.g., Finish the report"} {...field} />
@@ -430,7 +411,7 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
                   </FormItem>
                 )}
               />
-            </div>
+            
              <FormField
               control={form.control}
               name="description"
@@ -438,7 +419,7 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Add a more detailed description..." {...field} />
+                    <Textarea placeholder="Add a more detailed description..." {...field} value={field.value || ''}/>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -475,55 +456,6 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
                       )}
                     />
                 </div>
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                     <FormField
-                        control={form.control}
-                        name="plannedStartDate"
-                        render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                            <FormLabel>Planned Start Date</FormLabel>
-                            <Popover>
-                            <PopoverTrigger asChild>
-                                <FormControl>
-                                <Button
-                                    variant={"outline"}
-                                    className={cn(
-                                    "w-full justify-start text-left font-normal h-10",
-                                    !field.value && "text-muted-foreground"
-                                    )}
-                                >
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                </Button>
-                                </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                mode="single"
-                                selected={field.value}
-                                onSelect={field.onChange}
-                                initialFocus
-                                />
-                            </PopoverContent>
-                            </Popover>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="duration"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Duration (hours)</FormLabel>
-                            <FormControl>
-                                <Input type="number" placeholder="e.g. 8" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))} value={field.value ?? ''} />
-                            </FormControl>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
                   <FormField
@@ -539,7 +471,6 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="none">None</SelectItem>
                             <SelectItem value="low">Low</SelectItem>
                             <SelectItem value="medium">Medium</SelectItem>
                             <SelectItem value="high">High</SelectItem>
@@ -646,16 +577,16 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
                               >
                                 {field.value?.length 
                                   ? `${field.value.length} selected`
-                                  : "Select tasks"}
+                                  : "Select work items"}
                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                               </Button>
                             </FormControl>
                           </PopoverTrigger>
                           <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                             <Command>
-                              <CommandInput placeholder="Search tasks..." />
+                              <CommandInput placeholder="Search work items..." />
                               <CommandList>
-                                <CommandEmpty>No tasks found.</CommandEmpty>
+                                <CommandEmpty>No work items found.</CommandEmpty>
                                 <CommandGroup>
                                   {availableTasksForDepencency.map((task) => (
                                     <CommandItem
@@ -710,6 +641,20 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
                         </FormItem>
                       )}
                     />
+                     {reviewRequired && (
+                        <FormField
+                            control={form.control}
+                            name="reviewer"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormControl>
+                                    <Input placeholder="Reviewer name" {...field} value={field.value || ''}/>
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    )}
                     <FormField
                       control={form.control}
                       name="isCritical"
@@ -738,7 +683,7 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
                                     onCheckedChange={field.onChange}
                                     />
                                 </FormControl>
-                                <FormLabel htmlFor="recurring-task" className="!mt-0">Recurring Task</FormLabel>
+                                <FormLabel htmlFor="recurring-task" className="!mt-0">Recurring Work Item</FormLabel>
                             </FormItem>
                         )}
                     />
@@ -833,7 +778,7 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
           <CardFooter>
             <Button type="submit">
               <Plus className="mr-2 h-4 w-4" />
-              Add {isEpic ? 'Epic' : 'Task'}
+              Add {isEpic ? 'Epic' : 'Work Item'}
             </Button>
           </CardFooter>
         </form>
@@ -842,3 +787,5 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
     </>
   );
 }
+
+    

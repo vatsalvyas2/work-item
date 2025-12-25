@@ -28,7 +28,7 @@ function TasksSubMenu() {
                     isActive={isTasksActive && !pathname.startsWith('/tasks/')}
                 >
                     <List />
-                    <span>Tasks</span>
+                    <span>Work Item</span>
                     <ChevronDown className={cn("ml-auto h-4 w-4 shrink-0 transition-transform duration-200", open && "rotate-180")} />
                 </SidebarMenuButton>
             </CollapsibleTrigger>
@@ -41,7 +41,7 @@ function TasksSubMenu() {
                     </SidebarMenuSubItem>
                     <SidebarMenuSubItem>
                         <SidebarMenuSubButton asChild isActive={pathname === '/tasks/list'}>
-                             <Link href="/tasks/list">Task List</Link>
+                             <Link href="/tasks/list">Work Item List</Link>
                         </SidebarMenuSubButton>
                     </SidebarMenuSubItem>
                     <SidebarMenuSubItem>
@@ -94,14 +94,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
 
     const getPageTitle = () => {
-        if (pathname === '/') return 'Tasks Overview';
-        if (pathname === '/tasks/list') return 'Task List';
+        if (pathname === '/') return 'Work Item Overview';
+        if (pathname === '/tasks/list') return 'Work Item List';
         if (pathname.startsWith('/tasks/epics')) return 'Epics';
         if (pathname.startsWith('/dashboard')) return 'Dashboard';
         if (pathname.startsWith('/reports')) return 'Reports';
         if (pathname.startsWith('/calendar')) return 'Calendar';
         if (pathname.startsWith('/epics')) return 'Epic Details';
-        if (pathname.startsWith('/tasks/')) return 'Task Details';
+        if (pathname.startsWith('/tasks/')) return 'Work Item Details';
         if (pathname.startsWith('/settings')) return 'Settings';
         return 'Work Item';
     }

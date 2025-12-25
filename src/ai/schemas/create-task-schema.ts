@@ -1,3 +1,4 @@
+
 /**
  * @fileOverview Zod schemas and TypeScript types for the 'createTaskFromVoice' AI flow.
  */
@@ -31,36 +32,27 @@ export type CreateTaskFromVoiceInput = z.infer<
 >;
 
 export const CreateTaskFromVoiceOutputSchema = z.object({
-  title: z.string().optional().describe('The title of the task.'),
-  description: z.string().optional().describe('The description of the task.'),
-  taskType: z
-    .enum(['Story', 'Task', 'Bug'])
-    .optional()
-    .describe('The type of the work item.'),
-  assignee: z.string().optional().describe("The name of the person assigned to the task."),
-  reporter: z.string().optional().describe("The name of the person who reported the task."),
+  title: z.string().optional().describe('The title of the work item.'),
+  description: z.string().optional().describe('The description of the work item.'),
+  assignee: z.string().optional().describe("The name of the person assigned to the work item."),
+  reporter: z.string().optional().describe("The name of the person who reported the work item."),
   priority: z
-    .enum(['low', 'medium', 'high', 'none'])
+    .enum(['low', 'medium', 'high'])
     .optional()
-    .describe('The priority of the task.'),
-  plannedStartDate: z
-    .string()
-    .optional()
-    .describe('The planned start date of the task in YYYY-MM-DD format.'),
+    .describe('The priority of the work item.'),
   dueDate: z
     .string()
     .optional()
-    .describe('The due date of the task in YYYY-MM-DD format.'),
+    .describe('The due date of the work item in YYYY-MM-DD format.'),
   dueTime: z.string().optional().describe("The due time in HH:mm format (24-hour clock)."),
-  duration: z.number().optional().describe('The estimated duration of the task in hours. The user might say "for 2 days", you should convert that to 16 hours assuming an 8-hour workday.'),
   reviewRequired: z
     .boolean()
     .optional()
-    .describe('Whether a review is required for this task.'),
+    .describe('Whether a review is required for this work item.'),
   isCritical: z
     .boolean()
     .optional()
-    .describe('Whether the task is critical.'),
+    .describe('Whether the work item is critical.'),
   parentId: z
     .string()
     .optional()
@@ -68,7 +60,7 @@ export const CreateTaskFromVoiceOutputSchema = z.object({
   dependsOn: z
     .array(z.string())
     .optional()
-    .describe('An array of task IDs that this task depends on.'),
+    .describe('An array of work item IDs that this work item depends on.'),
 });
 export type CreateTaskFromVoiceOutput = z.infer<
   typeof CreateTaskFromVoiceOutputSchema

@@ -78,7 +78,7 @@ export default function TaskListPage() {
             <Card>
             <CardHeader>
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                <CardTitle>Your Tasks</CardTitle>
+                <CardTitle>Your Work Items</CardTitle>
                 </div>
                 <FilterControls
                 statusFilter={statusFilter}

@@ -34,7 +34,7 @@ export default function Home() {
         const existingNotification = notifications.find(n => n.taskId === task.id && n.message.includes("overdue"));
         if (!existingNotification) {
             database.addNotification({
-              message: `Task "${task.title}" is overdue.`,
+              message: `Work Item "${task.title}" is overdue.`,
               taskId: task.id,
             });
             hasNewNotifications = true;
@@ -77,7 +77,7 @@ export default function Home() {
       id: `task-${Date.now()}`,
       status: isBlocked ? 'Blocked' : 'To Do',
       createdAt: new Date(),
-      timeline: [{ id: `tl-${Date.now()}`, timestamp: new Date(), action: "Task Created", user: "System" }],
+      timeline: [{ id: `tl-${Date.now()}`, timestamp: new Date(), action: "Work Item Created", user: "System" }],
       subtasks: [],
       comments: [],
       requester: "Current User", // Placeholder
@@ -166,7 +166,7 @@ export default function Home() {
             <Card>
             <CardHeader>
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                <CardTitle>Your Tasks</CardTitle>
+                <CardTitle>Your Work Items</CardTitle>
                 </div>
                 <FilterControls
                 statusFilter={statusFilter}
