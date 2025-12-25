@@ -2,12 +2,58 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { SidebarProvider, Sidebar, SidebarTrigger, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarInset } from '@/components/ui/sidebar';
-import { LayoutDashboard, List, BarChart3, Settings, Calendar } from 'lucide-react';
+import { SidebarProvider, Sidebar, SidebarTrigger, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarInset, SidebarMenuSub, SidebarMenuSubItem, SidebarMenuSubButton, useSidebar } from '@/components/ui/sidebar';
+import { LayoutDashboard, List, BarChart3, Settings, Calendar, BookOpen } from 'lucide-react';
 import { NotificationBell } from '../work-item/NotificationBell';
 import { database } from '@/lib/db';
 import { Notification } from '@/lib/types';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ChevronDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+function TasksSubMenu() {
+    const pathname = usePathname();
+    const { open } = useSidebar();
+    const isTasksActive = pathname === '/' || pathname.startsWith('/tasks');
+
+    return (
+        <Collapsible defaultOpen={isTasksActive}>
+            <CollapsibleTrigger asChild>
+                <SidebarMenuButton 
+                    variant="ghost" 
+                    className="w-full justify-start"
+                    isActive={isTasksActive && !pathname.startsWith('/tasks/')}
+                >
+                    <List />
+                    <span>Tasks</span>
+                    <ChevronDown className={cn("ml-auto h-4 w-4 shrink-0 transition-transform duration-200", open && "rotate-180")} />
+                </SidebarMenuButton>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+                <SidebarMenuSub>
+                    <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={pathname === '/'}>
+                            <Link href="/">Overview</Link>
+                        </SidebarMenuSubButton>
+                    </SidebarMenuSubItem>
+                    <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={pathname === '/tasks/list'}>
+                             <Link href="/tasks/list">Task List</Link>
+                        </SidebarMenuSubButton>
+                    </SidebarMenuSubItem>
+                    <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={pathname.startsWith('/tasks/epics') || pathname.startsWith('/epics')}>
+                             <Link href="/tasks/epics">Epics</Link>
+                        </SidebarMenuSubButton>
+                    </SidebarMenuSubItem>
+                </SidebarMenuSub>
+            </CollapsibleContent>
+        </Collapsible>
+    )
+}
+
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
     const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -34,12 +80,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
 
     const getPageTitle = () => {
-        if (pathname === '/') return 'Tasks';
+        if (pathname === '/') return 'Tasks Overview';
+        if (pathname === '/tasks/list') return 'Task List';
+        if (pathname.startsWith('/tasks/epics')) return 'Epics';
         if (pathname.startsWith('/dashboard')) return 'Dashboard';
         if (pathname.startsWith('/reports')) return 'Reports';
         if (pathname.startsWith('/calendar')) return 'Calendar';
         if (pathname.startsWith('/epics')) return 'Epic Details';
-        if (pathname.startsWith('/tasks')) return 'Task Details';
+        if (pathname.startsWith('/tasks/')) return 'Task Details';
         if (pathname.startsWith('/settings')) return 'Settings';
         return 'Work Item';
     }
@@ -53,11 +101,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     </div>
                     <div className="flex-1 overflow-y-auto">
                         <SidebarMenu>
-                            <SidebarMenuItem>
-                                <SidebarMenuButton href="/" isActive={pathname === '/'} tooltip="Tasks">
-                                    <List />
-                                    <span>Tasks</span>
-                                </SidebarMenuButton>
+                             <SidebarMenuItem>
+                               <TasksSubMenu />
                             </SidebarMenuItem>
                             <SidebarMenuItem>
                                 <SidebarMenuButton href="/calendar" isActive={pathname === '/calendar'} tooltip="Calendar">
