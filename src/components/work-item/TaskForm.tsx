@@ -87,6 +87,7 @@ const formSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters."),
   description: z.string().optional(),
   dueDate: z.string().optional(),
+  dueTime: z.string().optional(),
   priority: z.enum(["low", "medium", "high"]),
   reviewRequired: z.boolean().default(false),
   reviewer: z.string().optional(),
@@ -123,7 +124,7 @@ const WEEK_ORDER: ('First' | 'Second' | 'Third' | 'Fourth' | 'Last')[] = ['First
 
 
 interface TaskFormProps {
-  onTaskSubmit: (data: Omit<Task, "id" | "status" | "createdAt" | "timeline" | "subtasks" | "comments" >) => void;
+  onTaskSubmit: (data: Omit<Task, "id" | "status" | "createdAt" | "timeline" | "subtasks" | "comments" | 'taskType' | 'isCritical'>) => void;
   collections: Collection[];
   tasks: Task[];
 }
@@ -178,6 +179,7 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
       reporter: "Current User",
       requester: "",
       dueDate: "",
+      dueTime: "",
     },
   });
 
@@ -209,6 +211,7 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
       if (result.reporter) form.setValue("reporter", result.reporter);
       if (result.requester) form.setValue("requester", result.requester);
       if (result.dueDate) form.setValue("dueDate", result.dueDate);
+      if (result.dueTime) form.setValue("dueTime", result.dueTime);
       if (result.reviewRequired) form.setValue("reviewRequired", result.reviewRequired);
       if (result.reviewer) form.setValue("reviewer", result.reviewer);
       if (result.parentId) form.setValue("parentId", result.parentId);
@@ -294,7 +297,8 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
       
       const populatedResult = {
         ...result,
-        dueDate: result.dueDate ? format(parseISO(result.dueDate + (result.dueTime ? 'T' + result.dueTime : '')), "yyyy-MM-dd'T'HH:mm") : undefined,
+        dueDate: result.dueDate ? format(parseISO(result.dueDate), "yyyy-MM-dd") : undefined,
+        dueTime: result.dueTime || undefined,
       };
       
       onAiSubmit(populatedResult as Partial<FormValues>);
@@ -326,7 +330,22 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
   const handleSubmit = (data: FormValues) => {
     const { ...taskData } = data;
     
-    let finalDueDate: Date | undefined = taskData.dueDate ? new Date(taskData.dueDate) : undefined;
+    let finalDueDate: Date | undefined;
+
+    if (data.isRecurring) {
+        // For recurring tasks, we might not have a single 'dueDate'. 
+        // The first occurrence would be calculated based on recurrence rules.
+        // We do need to capture the time.
+        if (data.dueTime) {
+            const [hours, minutes] = data.dueTime.split(':').map(Number);
+            // Create a placeholder date with the right time. The actual date will be determined by the recurrence rule.
+            finalDueDate = new Date(); 
+            finalDueDate.setHours(hours, minutes, 0, 0);
+        }
+    } else if (data.dueDate) {
+        finalDueDate = new Date(data.dueDate);
+    }
+
 
     const recurrencePayload = taskData.isRecurring && taskData.recurrence ? {
         ...taskData.recurrence,
@@ -344,7 +363,6 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
 
     onTaskSubmit({
       ...taskData,
-      taskType: 'Task', // Defaulting to 'Task' as type is removed
       parentId: taskData.parentId === 'none' ? undefined : taskData.parentId,
       dueDate: finalDueDate,
       recurrence: recurrencePayload,
@@ -692,6 +710,24 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
                                 </FormItem>
                                 )}
                             />
+                            <div className="grid grid-cols-1 gap-4">
+                                <FormField
+                                    control={form.control}
+                                    name="dueTime"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Due Time</FormLabel>
+                                        <FormControl>
+                                            <Input type="time" {...field} value={field.value || ''} />
+                                        </FormControl>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+                        </div>
+
+                         <div className="grid grid-cols-1">
                              <FormField
                                 control={form.control}
                                 name="recurrence.endDate"
@@ -895,3 +931,5 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
 }
 
     
+
+      

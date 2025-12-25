@@ -71,7 +71,6 @@ export type ExtensionRequest = {
 export type Task = {
   id: string;
   title: string;
-  taskType: TaskType;
   description: string;
   status: TaskStatus;
   priority: TaskPriority;
@@ -79,8 +78,6 @@ export type Task = {
   createdAt: Date;
   actualStartDate?: Date;
   completedAt?: Date;
-  duration?: number; // in hours
-  isCritical: boolean;
   reviewRequired: boolean;
   requester?: string;
   assignee?: string; 
@@ -117,3 +114,5 @@ export type AppDatabase = {
 };
 
     
+
+      
