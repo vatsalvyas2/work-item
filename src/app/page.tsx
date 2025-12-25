@@ -159,6 +159,10 @@ export default function Home() {
         </section>
 
         <section>
+          <EpicList epics={epics} />
+        </section>
+
+        <section>
             <Card>
             <CardHeader>
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">

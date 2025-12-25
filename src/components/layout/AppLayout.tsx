@@ -4,14 +4,15 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { SidebarProvider, Sidebar, SidebarTrigger, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarInset, SidebarMenuSub, SidebarMenuSubItem, SidebarMenuSubButton, useSidebar } from '@/components/ui/sidebar';
-import { LayoutDashboard, List, BarChart3, Settings, Calendar, BookOpen } from 'lucide-react';
+import { SidebarProvider, Sidebar, SidebarTrigger, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarInset, SidebarMenuSub, SidebarMenuSubItem, SidebarMenuSubButton, useSidebar, SidebarRail } from '@/components/ui/sidebar';
+import { LayoutDashboard, List, BarChart3, Settings, Calendar, BookOpen, ChevronLeft } from 'lucide-react';
 import { NotificationBell } from '../work-item/NotificationBell';
 import { database } from '@/lib/db';
 import { Notification } from '@/lib/types';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Button } from '../ui/button';
 
 function TasksSubMenu() {
     const pathname = usePathname();
@@ -96,8 +97,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <SidebarProvider>
             <Sidebar>
                 <div className="flex flex-col h-full">
-                    <div className="p-4 border-b">
+                    <div className="p-4 border-b flex justify-between items-center">
                         <h1 className="text-2xl font-bold tracking-tight">Work Item</h1>
+                        <SidebarTrigger>
+                            <Button variant="ghost" size="icon">
+                                <ChevronLeft />
+                            </Button>
+                        </SidebarTrigger>
                     </div>
                     <div className="flex-1 overflow-y-auto">
                         <SidebarMenu>
@@ -135,6 +141,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                         </SidebarMenu>
                     </div>
                 </div>
+                <SidebarRail />
             </Sidebar>
             <SidebarInset>
                 <main className="container mx-auto max-w-7xl p-4 sm:p-6 md:p-8">
