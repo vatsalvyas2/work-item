@@ -5,7 +5,7 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format, parseISO } from "date-fns";
-import { CalendarIcon, Plus, Check, ChevronsUpDown, Mic, Trash2, Square, Loader2, Info, Send } from "lucide-react";
+import { CalendarIcon, Plus, Check, ChevronsUpDown, Mic, Trash2, Square, Loader2, Info, Send, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -130,9 +130,12 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [isMicSupported, setIsMicSupported] = useState(true);
+  const [recordingTime, setRecordingTime] = useState(0);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -188,11 +191,12 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
 
   const startRecording = async () => {
     setTranscript('');
+    setRecordingTime(0);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm',
-        audioBitsPerSecond: 16000,
+        audioBitsPerSecond : 16000,
+        mimeType: 'audio/webm'
       });
       mediaRecorderRef.current = recorder;
       audioChunksRef.current = [];
@@ -202,6 +206,7 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
       };
 
       recorder.onstop = async () => {
+        if(timerIntervalRef.current) clearInterval(timerIntervalRef.current);
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         
         const reader = new FileReader();
@@ -224,6 +229,9 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
 
       recorder.start();
       setIsRecording(true);
+      timerIntervalRef.current = setInterval(() => {
+        setRecordingTime(prevTime => prevTime + 1);
+      }, 1000);
     } catch (err) {
       console.error("Error accessing microphone:", err);
       setIsMicSupported(false); 
@@ -234,6 +242,7 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
       mediaRecorderRef.current.stop();
     }
+    if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     setIsRecording(false);
   };
 
@@ -344,6 +353,12 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
   const availableTasksForDepencency = tasks.filter(t => t.status !== 'Done' && t.status !== 'Cancelled');
   const isAiSubmitDisabled = !transcript.trim() || isAiProcessing || isRecording || isTranscribing;
 
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+  };
+
 
   return (
     <Card>
@@ -365,17 +380,20 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
                     </Alert>
                 ) : (
                     <div className="flex items-start gap-4">
-                        <Button
-                            type="button"
-                            size="icon"
-                            variant={isRecording ? 'destructive' : 'outline'}
-                            className="rounded-full flex-shrink-0"
-                            onClick={handleToggleRecording}
-                            disabled={!isMicSupported || isAiProcessing}
-                            aria-label={isRecording ? "Stop recording" : "Start recording"}
-                        >
-                            {isRecording ? <Square /> : <Mic />}
-                        </Button>
+                        <div className="flex flex-col items-center gap-2">
+                            <Button
+                                type="button"
+                                size="icon"
+                                variant={isRecording ? 'destructive' : 'outline'}
+                                className="rounded-full flex-shrink-0 w-12 h-12"
+                                onClick={handleToggleRecording}
+                                disabled={!isMicSupported || isAiProcessing}
+                                aria-label={isRecording ? "Stop recording" : "Start recording"}
+                            >
+                                {isRecording ? <Square /> : <Sparkles className="h-5 w-5" />}
+                            </Button>
+                            {isRecording && <span className="text-xs font-mono text-muted-foreground">{formatTime(recordingTime)}</span>}
+                        </div>
                         <div className="w-full space-y-2">
                            <div className="p-3 bg-muted rounded-md text-sm min-h-[40px] w-full">
                                 {isTranscribing ? (
@@ -385,7 +403,7 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
                                     </div>
                                 ) : (
                                     <p className="text-muted-foreground italic">
-                                        {transcript || (isRecording ? "Listening..." : "Click the mic and speak your command...")}
+                                        {transcript || (isRecording ? "Listening..." : "Click the button and speak your command...")}
                                     </p>
                                 )}
                             </div>
@@ -1015,3 +1033,5 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
     </Card>
   );
 }
+
+    
