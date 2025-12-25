@@ -4,7 +4,7 @@
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, addMonths } from "date-fns";
 import { CalendarIcon, Plus, Check, ChevronsUpDown, Mic, Square, Loader2, Send, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -761,10 +761,13 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
                                     </PopoverTrigger>
                                     <PopoverContent className="w-auto p-0" align="start">
                                         <Calendar
-                                        mode="single"
-                                        selected={field.value}
-                                        onSelect={field.onChange}
-                                        initialFocus
+                                            mode="single"
+                                            selected={field.value}
+                                            onSelect={field.onChange}
+                                            disabled={(date) =>
+                                                date < new Date(new Date().setHours(0, 0, 0, 0)) || date > addMonths(new Date(), 6)
+                                            }
+                                            initialFocus
                                         />
                                     </PopoverContent>
                                     </Popover>
