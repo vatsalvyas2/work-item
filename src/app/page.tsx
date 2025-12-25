@@ -9,8 +9,8 @@ import { TaskList } from "@/components/work-item/TaskList";
 import { FilterControls } from "@/components/work-item/FilterControls";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { database } from "@/lib/db";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Book } from "lucide-react";
+import { Book, FileText } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 
 export default function Home() {
@@ -201,44 +201,48 @@ export default function Home() {
                 />
             </CardHeader>
             <CardContent>
-                <Accordion type="multiple" className="w-full space-y-4" defaultValue={collectionOrder.map(c => c.id)}>
+                <ul className="space-y-2">
                     {collectionOrder.map(collection => {
                         const collectionTasks = tasksByCollection.grouped[collection.id] || [];
                         if (collectionTasks.length === 0) return null;
-                        
+
                         return (
-                            <AccordionItem value={collection.id} key={collection.id} className="border-none">
-                                <Card>
-                                    <AccordionTrigger className="p-6 text-lg hover:no-underline">
-                                        <div className="flex items-center gap-3">
-                                            <Book className="h-6 w-6 text-purple-600" />
-                                            <div>
-                                                <h3 className="font-semibold">{collection.title}</h3>
-                                                <p className="text-sm text-muted-foreground font-normal">{collection.description}</p>
-                                            </div>
-                                        </div>
-                                    </AccordionTrigger>
-                                    <AccordionContent className="px-6 pb-6">
-                                       <TaskList
-                                            tasks={collectionTasks}
-                                            onTaskSelect={handleSelectTask}
-                                        />
-                                    </AccordionContent>
-                                </Card>
-                            </AccordionItem>
+                            <li key={collection.id}>
+                                <div className="flex items-center gap-2 text-lg font-semibold text-purple-600">
+                                    <Book className="h-5 w-5" />
+                                    <span>{collection.title}</span>
+                                </div>
+                                {collectionTasks.length > 0 && (
+                                    <ul className="pl-6 mt-2 space-y-1">
+                                        {collectionTasks.map(task => (
+                                            <li key={task.id} 
+                                                onClick={() => handleSelectTask(task)}
+                                                className="flex items-center gap-2 cursor-pointer hover:bg-accent p-1 rounded-md"
+                                            >
+                                                <FileText className="h-4 w-4 text-muted-foreground" />
+                                                <span className={cn(
+                                                    task.status === 'Done' && 'line-through text-muted-foreground'
+                                                )}>{task.title}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </li>
                         )
                     })}
-                </Accordion>
-
-                {tasksByCollection.standalone.length > 0 && (
-                    <div className="mt-8">
-                         <h3 className="text-lg font-semibold mb-4 pl-2">Standalone Work Items</h3>
-                         <TaskList
-                            tasks={tasksByCollection.standalone}
-                            onTaskSelect={handleSelectTask}
-                         />
-                    </div>
-                )}
+                    {tasksByCollection.standalone.map(task => (
+                        <li key={task.id} 
+                            onClick={() => handleSelectTask(task)}
+                            className="flex items-center gap-2 cursor-pointer hover:bg-accent p-1 rounded-md"
+                        >
+                            <FileText className="h-4 w-4 text-muted-foreground" />
+                            <span className={cn(
+                                "font-semibold",
+                                task.status === 'Done' && 'line-through text-muted-foreground'
+                            )}>{task.title}</span>
+                        </li>
+                    ))}
+                </ul>
             </CardContent>
             </Card>
         </section>
