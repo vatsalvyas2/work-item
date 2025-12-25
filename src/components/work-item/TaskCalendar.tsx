@@ -93,9 +93,9 @@ export function TaskCalendar({ tasks, onTaskSelect }: TaskCalendarProps) {
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
-      <div className="grid grid-cols-7 gap-px bg-gray-200 border-t border-l border-gray-200">
+      <div className="grid grid-cols-7 border-t border-l border-gray-200">
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(day => (
-          <div key={day} className="py-2 text-center font-semibold text-sm bg-gray-50 text-gray-600">{day}</div>
+            <div key={day} className="py-2 text-center font-semibold text-sm bg-gray-50 text-gray-600 border-b border-r border-gray-200">{day}</div>
         ))}
         {days.map(day => {
             const dayTasks = tasksByDate[format(day, "yyyy-MM-dd")] || [];
@@ -106,7 +106,7 @@ export function TaskCalendar({ tasks, onTaskSelect }: TaskCalendarProps) {
               <div
                 key={day.toString()}
                 className={cn(
-                  "relative bg-white p-2 min-h-[120px]",
+                  "relative bg-white p-2 min-h-[120px] border-b border-r border-gray-200",
                   !isSameMonth(day, monthStart) && "bg-gray-50 opacity-50",
                   isSameDay(day, new Date()) && "bg-blue-50"
                 )}
