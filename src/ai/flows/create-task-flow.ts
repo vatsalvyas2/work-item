@@ -45,6 +45,7 @@ Analyze the user's command and fill in the fields of the output schema in Englis
 - IMPORTANT: Take the user's description and enhance it. Rewrite it to be clearer, more detailed, and well-structured for a project management tool. The final description must be in English.
 - For 'parentId', you MUST use the ID of the epic if the user mentions an epic title.
 - For 'dependsOn', you MUST use the task IDs if the user mentions task titles as dependencies.
+- For 'duration', if the user specifies a duration in days, convert it to hours assuming an 8-hour workday (e.g., "2 days" becomes 16). If they specify hours, use that value directly.
 - Dates should be in 'YYYY-MM-DD' format.
 - Times should be in 'HH:mm' format.
 - Booleans should be true or false.

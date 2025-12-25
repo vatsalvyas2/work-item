@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format, parseISO } from "date-fns";
@@ -186,6 +186,7 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
       if (result.plannedStartDate) form.setValue("plannedStartDate", result.plannedStartDate);
       if (result.dueDate) form.setValue("dueDate", result.dueDate);
       if (result.dueTime) form.setValue("dueTime", result.dueTime);
+      if (result.duration) form.setValue("duration", result.duration);
       if (result.reviewRequired) form.setValue("reviewRequired", result.reviewRequired);
       if (result.isCritical) form.setValue("isCritical", result.isCritical);
       if (result.parentId) form.setValue("parentId", result.parentId);
@@ -516,7 +517,7 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
                             <FormItem>
                             <FormLabel>Duration (hours)</FormLabel>
                             <FormControl>
-                                <Input type="number" placeholder="e.g. 8" {...field} onChange={e => field.onChange(parseInt(e.target.value))}/>
+                                <Input type="number" placeholder="e.g. 8" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))} value={field.value ?? ''} />
                             </FormControl>
                             <FormMessage />
                             </FormItem>

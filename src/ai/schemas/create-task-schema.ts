@@ -52,6 +52,7 @@ export const CreateTaskFromVoiceOutputSchema = z.object({
     .optional()
     .describe('The due date of the task in YYYY-MM-DD format.'),
   dueTime: z.string().optional().describe("The due time in HH:mm format (24-hour clock)."),
+  duration: z.number().optional().describe('The estimated duration of the task in hours. The user might say "for 2 days", you should convert that to 16 hours assuming an 8-hour workday.'),
   reviewRequired: z
     .boolean()
     .optional()
