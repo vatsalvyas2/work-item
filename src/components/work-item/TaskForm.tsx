@@ -295,6 +295,13 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
 
   const isRecurring = form.watch("isRecurring");
   const reviewRequired = form.watch("reviewRequired");
+  const reporter = form.watch("reporter");
+
+  useEffect(() => {
+      if (reviewRequired && reporter && !form.getValues("reviewer")) {
+          form.setValue("reviewer", reporter);
+      }
+  }, [reviewRequired, reporter, form]);
   
   const handleSubmit = (data: FormValues) => {
     const { ...taskData } = data;
@@ -732,3 +739,5 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
     </>
   );
 }
+
+    
