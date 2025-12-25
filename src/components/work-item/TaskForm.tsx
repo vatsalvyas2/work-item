@@ -5,7 +5,7 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format, parseISO } from "date-fns";
-import { CalendarIcon, Plus, Check, ChevronsUpDown, Sparkles } from "lucide-react";
+import { CalendarIcon, Plus, Check, ChevronsUpDown, Sparkles, Mic, Square, Loader2, Send } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -42,11 +42,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { cn } from "@/lib/utils";
 import type { Task, Epic, TaskType } from "@/lib/types";
 import { Switch } from "@/components/ui/switch";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Textarea } from "../ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "../ui/toggle-group";
-import { Separator } from "../ui/separator";
-import { VoiceCommandDialog } from "./VoiceCommandDialog";
+import { createTaskFromVoice } from "@/ai/flows/create-task-flow";
+import { transcribeAudio } from "@/ai/flows/transcribe-audio-flow";
 
 
 const monthlyWeekdaySchema = z.object({
@@ -112,7 +112,6 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 
 interface TaskFormProps {
@@ -123,8 +122,26 @@ interface TaskFormProps {
 }
 
 export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormProps) {
-  const [isVoiceDialogOpen, setIsVoiceDialogOpen] = useState(false);
-  
+  const [isVoicePanelOpen, setIsVoicePanelOpen] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [isAiProcessing, setIsAiProcessing] = useState(false);
+  const [transcript, setTranscript] = useState('');
+  const [isMicSupported, setIsMicSupported] = useState(true);
+  const [recordingTime, setRecordingTime] = useState(0);
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            setIsMicSupported(false);
+        }
+    }
+  }, []);
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -157,36 +174,9 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
     },
   });
 
-  const { fields: monthlyDateFields, append: appendMonthlyDate, remove: removeMonthlyDate } = useFieldArray({ control: form.control, name: "recurrence.monthly.dates" });
-  const { fields: monthlyWeekdayFields, append: appendMonthlyWeekday, remove: removeMonthlyWeekday } = useFieldArray({ control: form.control, name: "recurrence.monthly.weekdays" });
-  const { fields: yearlyDateFields, append: appendYearlyDate, remove: removeYearlyDate } = useFieldArray({ control: form.control, name: "recurrence.yearly.dates" });
-  const { fields: yearlyWeekdayFields, append: appendYearlyWeekday, remove: removeYearlyWeekday } = useFieldArray({ control: form.control, name: "recurrence.yearly.weekdays" });
-
-
-  const taskType = form.watch("taskType");
-  const isRecurring = form.watch("isRecurring");
-  const recurrenceInterval = form.watch("recurrence.interval");
-  const monthlyMode = form.watch("recurrence.monthly.mode");
-  const yearlyMode = form.watch("recurrence.yearly.mode");
-
   const onAiSubmit = (result: Partial<FormValues>) => {
-      // Reset fields that might not be in the AI response
-      form.setValue('title', '');
-      form.setValue('description', '');
-      form.setValue('taskType', 'Task');
-      form.setValue('priority', 'medium');
-      form.setValue('assignee', '');
-      form.setValue('reporter', '');
-      form.setValue('plannedStartDate', undefined);
-      form.setValue('dueDate', undefined);
-      form.setValue('dueTime', '');
-      form.setValue('reviewRequired', false);
-      form.setValue('isCritical', false);
-      form.setValue('parentId', 'none');
-      form.setValue('dependsOn', []);
+      form.reset(); // Clear form before applying new values
 
-
-      // Populate form with AI response
       if (result.title) form.setValue("title", result.title);
       if (result.description) form.setValue("description", result.description);
       if (result.taskType) form.setValue("taskType", result.taskType);
@@ -202,6 +192,108 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
       if (result.dependsOn) form.setValue("dependsOn", result.dependsOn);
   };
 
+  const startRecording = async () => {
+    setTranscript('');
+    setRecordingTime(0);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream, {
+        audioBitsPerSecond : 16000,
+        mimeType: 'audio/webm'
+      });
+      mediaRecorderRef.current = recorder;
+      audioChunksRef.current = [];
+
+      recorder.ondataavailable = (event) => {
+        audioChunksRef.current.push(event.data);
+      };
+
+      recorder.onstop = async () => {
+        if(timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = async () => {
+            const base64Audio = reader.result as string;
+            setIsTranscribing(true);
+            try {
+                const transcription = await transcribeAudio({ audioDataUri: base64Audio });
+                setTranscript(transcription);
+            } catch (error) {
+                console.error("Transcription error:", error);
+                setTranscript("Sorry, I couldn't transcribe that. Please try again.");
+            } finally {
+                setIsTranscribing(false);
+            }
+        };
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      recorder.start();
+      setIsRecording(true);
+      timerIntervalRef.current = setInterval(() => {
+        setRecordingTime(prevTime => prevTime + 1);
+      }, 1000);
+    } catch (err) {
+      console.error("Error accessing microphone:", err);
+      setIsMicSupported(false); 
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+    }
+    if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    setIsRecording(false);
+  };
+
+  const handleToggleRecording = () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
+
+  const handleAiSubmit = async () => {
+    if (!transcript.trim()) return;
+
+    setIsAiProcessing(true);
+    try {
+      const result = await createTaskFromVoice({
+        command: transcript,
+        availableEpics: epics.map(e => ({ id: e.id, title: e.title })),
+        availableTasks: tasks.map(t => ({ id: t.id, title: t.title })),
+        currentDate: new Date().toISOString(),
+      });
+      
+      const populatedResult = {
+        ...result,
+        plannedStartDate: result.plannedStartDate ? parseISO(result.plannedStartDate) : undefined,
+        dueDate: result.dueDate ? parseISO(result.dueDate) : undefined,
+      };
+      
+      onAiSubmit(populatedResult);
+      setTranscript('');
+      setIsVoicePanelOpen(false);
+    } catch (error) {
+      console.error("Error processing voice command:", error);
+    } finally {
+      setIsAiProcessing(false);
+    }
+  };
+
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+  };
+
+  const taskType = form.watch("taskType");
+  const isRecurring = form.watch("isRecurring");
+  
   const handleSubmit = (data: FormValues) => {
     if (data.taskType === 'Epic') {
         const { title, description } = data;
@@ -253,14 +345,53 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Create a New {isEpic ? 'Epic' : 'Task'}</CardTitle>
-        <Button variant="outline" onClick={() => setIsVoiceDialogOpen(true)} className="rounded-full">
+         <Button variant="outline" onClick={() => setIsVoicePanelOpen(prev => !prev)}>
             <Sparkles className="mr-2 h-4 w-4" />
             Auto Fill
         </Button>
       </CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)}>
-          <CardContent className="space-y-6">
+           {isVoicePanelOpen && (
+              <CardContent className="space-y-3 border-b pb-6">
+                <h3 className="text-sm font-medium text-muted-foreground">Voice Command</h3>
+                <div className="flex items-center gap-4">
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant={isRecording ? "destructive" : "outline"}
+                    className="rounded-full flex-shrink-0"
+                    onClick={handleToggleRecording}
+                    disabled={!isMicSupported || isAiProcessing || isTranscribing}
+                    aria-label={isRecording ? "Stop recording" : "Start recording"}
+                  >
+                    {isRecording ? <Square /> : <Mic />}
+                  </Button>
+                  <div className="w-full p-3 bg-muted rounded-md text-sm min-h-[40px] flex items-center">
+                    {isRecording ? (
+                        <div className="flex items-center gap-2 text-muted-foreground w-full">
+                           <span className="text-red-500 animate-pulse">&#9679;</span>
+                           <span>Recording...</span>
+                           <span className="ml-auto font-mono">{formatTime(recordingTime)}</span>
+                        </div>
+                    ) : isTranscribing ? (
+                       <div className="flex items-center gap-2 text-muted-foreground">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span>Transcribing...</span>
+                        </div>
+                    ) : (
+                        <p className="text-muted-foreground italic">
+                            {transcript || "Click the mic to start recording..."}
+                        </p>
+                    )}
+                  </div>
+                   <Button type="button" onClick={handleAiSubmit} disabled={!transcript.trim() || isAiProcessing || isRecording || isTranscribing}>
+                        {isAiProcessing ? <Loader2 className="animate-spin" /> : <Send />}
+                  </Button>
+                </div>
+              </CardContent>
+            )}
+          <CardContent className="space-y-6 pt-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                <FormField
                 control={form.control}
@@ -674,7 +805,7 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
                             />
                         </div>
                         
-                        {recurrenceInterval === 'weekly' && (
+                        {form.watch("recurrence.interval") === 'weekly' && (
                              <FormField
                                 control={form.control}
                                 name="recurrence.daysOfWeek"
@@ -707,13 +838,6 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
         </form>
       </Form>
     </Card>
-    <VoiceCommandDialog 
-        open={isVoiceDialogOpen} 
-        onOpenChange={setIsVoiceDialogOpen} 
-        epics={epics} 
-        tasks={tasks}
-        onAiSubmit={onAiSubmit}
-    />
     </>
   );
 }
