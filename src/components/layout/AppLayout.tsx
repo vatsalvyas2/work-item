@@ -62,9 +62,7 @@ function AppSidebarHeader() {
         <div className="p-4 border-b flex justify-between items-center">
             <h1 className="text-2xl font-bold tracking-tight">{open ? "Work Item" : ""}</h1>
             <SidebarTrigger>
-                <Button variant="ghost" size="icon">
-                    <ChevronLeft />
-                </Button>
+                <ChevronLeft />
             </SidebarTrigger>
         </div>
     );
