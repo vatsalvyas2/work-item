@@ -10,7 +10,7 @@ const TaskSchema = z.object({
   title: z.string(),
 });
 
-const EpicSchema = z.object({
+const CollectionSchema = z.object({
   id: z.string(),
   title: z.string(),
 });
@@ -20,9 +20,9 @@ export const CreateTaskFromVoiceInputSchema = z.object({
   availableTasks: z
     .array(TaskSchema)
     .describe('A list of available tasks the new task can depend on.'),
-  availableEpics: z
-    .array(EpicSchema)
-    .describe('A list of available epics the new task can be assigned to.'),
+  availableCollections: z
+    .array(CollectionSchema)
+    .describe('A list of available collections the new task can be assigned to.'),
   currentDate: z
     .string()
     .describe('The current date in ISO format, to help resolve relative dates like "tomorrow".'),
@@ -36,6 +36,7 @@ export const CreateTaskFromVoiceOutputSchema = z.object({
   description: z.string().optional().describe('The description of the work item.'),
   assignee: z.string().optional().describe("The name of the person assigned to the work item."),
   reporter: z.string().optional().describe("The name of the person who reported the work item."),
+  requester: z.string().optional().describe("The name of the person who requested the work item."),
   priority: z
     .enum(['low', 'medium', 'high'])
     .optional()
@@ -49,14 +50,10 @@ export const CreateTaskFromVoiceOutputSchema = z.object({
     .boolean()
     .optional()
     .describe('Whether a review is required for this work item.'),
-  isCritical: z
-    .boolean()
-    .optional()
-    .describe('Whether the work item is critical.'),
   parentId: z
     .string()
     .optional()
-    .describe('The ID of the parent epic, if mentioned.'),
+    .describe('The ID of the parent collection, if mentioned.'),
   dependsOn: z
     .array(z.string())
     .optional()

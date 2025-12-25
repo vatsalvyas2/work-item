@@ -3,23 +3,23 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import type { Task, FilterStatus, FilterPriority, TaskStatus, Epic, Notification } from "@/lib/types";
+import type { Task, FilterStatus, FilterPriority, TaskStatus, Collection, Notification } from "@/lib/types";
 import { TaskForm } from "@/components/work-item/TaskForm";
 import { TaskList } from "@/components/work-item/TaskList";
 import { FilterControls } from "@/components/work-item/FilterControls";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { database } from "@/lib/db";
-import { EpicList } from "@/components/work-item/EpicList";
+import { CollectionList } from "@/components/work-item/CollectionList";
 
 
 export default function Home() {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [epics, setEpics] = useState<Epic[]>([]);
+  const [collections, setCollections] = useState<Collection[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
   useEffect(() => {
     setTasks(database.getTasks());
-    setEpics(database.getEpics());
+    setCollections(database.getCollections());
     setNotifications(database.getNotifications());
   }, []);
 
@@ -55,14 +55,14 @@ export default function Home() {
   );
   const [sortBy, setSortBy] = useState<"dueDate" | "priority">("dueDate");
 
-  const addEpic = (epic: Omit<Epic, "id" | "project">) => {
-    const newEpic: Epic = {
-      ...epic,
-      id: `epic-${Date.now()}`,
+  const addCollection = (collection: Omit<Collection, "id" | "project">) => {
+    const newCollection: Collection = {
+      ...collection,
+      id: `collection-${Date.now()}`,
       project: "SCRUM-X" // Placeholder
     };
-    const updatedEpics = database.addEpic(newEpic);
-    setEpics([...updatedEpics]);
+    const updatedCollections = database.addCollection(newCollection);
+    setCollections([...updatedCollections]);
   };
 
   const addTask = (task: Omit<Task, "id" | "status" | "createdAt" | "timeline" | "subtasks" | "comments" >) => {
@@ -80,7 +80,7 @@ export default function Home() {
       timeline: [{ id: `tl-${Date.now()}`, timestamp: new Date(), action: "Work Item Created", user: "System" }],
       subtasks: [],
       comments: [],
-      requester: "Current User", // Placeholder
+      reporter: "Current User", // Placeholder
     };
     const updatedTasks = database.addTask(newTask);
     setTasks([...updatedTasks]);
@@ -152,14 +152,14 @@ export default function Home() {
         <section>
           <TaskForm 
             onTaskSubmit={addTask} 
-            onEpicSubmit={addEpic} 
-            epics={epics}
+            onCollectionSubmit={addCollection} 
+            collections={collections}
             tasks={tasks}
           />
         </section>
 
         <section>
-          <EpicList epics={epics} />
+          <CollectionList collections={collections} />
         </section>
 
         <section>

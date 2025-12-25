@@ -31,8 +31,8 @@ Your goal is to parse the user's command and extract the necessary information t
 
 Today's date is {{currentDate}}. Use this to resolve relative dates like "tomorrow" or "next Friday".
 
-Here are the available Epics:
-{{#each availableEpics}}
+Here are the available Collections:
+{{#each availableCollections}}
 - ID: {{id}}, Title: "{{title}}"
 {{/each}}
 
@@ -43,7 +43,7 @@ Here are the available Work Items that can be dependencies:
 
 Analyze the user's command and fill in the fields of the output schema in English.
 - IMPORTANT: Take the user's description and enhance it. Rewrite it to be clearer, more detailed, and well-structured for a project management tool. The final description must be in English.
-- For 'parentId', you MUST use the ID of the epic if the user mentions an epic title.
+- For 'parentId', you MUST use the ID of the collection if the user mentions a collection title.
 - For 'dependsOn', you MUST use the task IDs if the user mentions task titles as dependencies.
 - Dates should be in 'YYYY-MM-DD' format.
 - Times should be in 'HH:mm' format.

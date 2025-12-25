@@ -10,7 +10,7 @@ export type TaskStatus =
   | 'Blocked';
 
 export type TaskType = 'Story' | 'Task' | 'Bug';
-export type TaskPriority = 'low' | 'medium' | 'high' | 'none';
+export type TaskPriority = 'low' | 'medium' | 'high';
 
 export type TimelineEntry = {
   id: string;
@@ -48,7 +48,7 @@ export type Recurrence = {
   yearly?: YearlyRecurrence;
 }
 
-export type Epic = {
+export type Collection = {
   id: string;
   title: string;
   project: string;
@@ -77,7 +77,6 @@ export type Task = {
   priority: TaskPriority;
   dueDate: Date | undefined;
   createdAt: Date;
-  plannedStartDate?: Date;
   actualStartDate?: Date;
   completedAt?: Date;
   duration?: number; // in hours
@@ -90,7 +89,7 @@ export type Task = {
   timeline: TimelineEntry[];
   comments: Comment[];
   recurrence?: Recurrence;
-  parentId?: string; // Link to Epic
+  parentId?: string; // Link to Collection
   subtasks: Subtask[];
   labels?: string[];
   dependsOn?: string[]; // NEW: IDs of tasks that must be completed first
@@ -113,6 +112,6 @@ export type FilterPriority = TaskPriority | 'all';
 // Database type
 export type AppDatabase = {
   tasks: Task[];
-  epics: Epic[];
+  collections: Collection[];
   notifications: Notification[];
 };

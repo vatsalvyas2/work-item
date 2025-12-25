@@ -1,6 +1,6 @@
 
 
-import type { AppDatabase, Task, Epic, Notification } from './types';
+import type { AppDatabase, Task, Collection, Notification } from './types';
 
 // In-memory database
 let db: AppDatabase = {
@@ -35,7 +35,7 @@ let db: AppDatabase = {
           dueDate: new Date("2024-08-05T09:00:00"),
           createdAt: new Date("2024-07-26"),
           completedAt: new Date("2024-08-02"),
-          plannedStartDate: new Date("2024-07-28"),
+          actualStartDate: new Date("2024-07-28"),
           duration: 40,
           reviewRequired: true,
           isCritical: false,
@@ -46,7 +46,7 @@ let db: AppDatabase = {
           comments: [{id: "c2-1", timestamp: new Date(), text: "Can I get more info?", user: "Alex"}],
           requester: "Vatsal Vyas",
           reporter: "Vatsal Vyas",
-          parentId: "epic-1",
+          parentId: "collection-1",
           storyPoints: 8,
         },
         {
@@ -66,12 +66,12 @@ let db: AppDatabase = {
           comments: [],
           requester: "Jane Doe",
           reporter: "Jane Doe",
-          parentId: "epic-1",
+          parentId: "collection-1",
           storyPoints: 3,
         },
       ],
-    epics: [
-        { id: 'epic-1', title: 'User Management Feature', project: 'SCRUM-5', description: 'Epic for user management' }
+    collections: [
+        { id: 'collection-1', title: 'User Management Feature', project: 'SCRUM-5', description: 'Collection for user management' }
     ],
     notifications: [],
 };
@@ -95,11 +95,11 @@ export const database = {
     });
     return taskToUpdate;
   },
-  getEpics: () => db.epics,
-  getEpic: (id: string) => db.epics.find(e => e.id === id),
-  addEpic: (epic: Epic) => {
-    db.epics.unshift(epic);
-    return db.epics;
+  getCollections: () => db.collections,
+  getCollection: (id: string) => db.collections.find(e => e.id === id),
+  addCollection: (collection: Collection) => {
+    db.collections.unshift(collection);
+    return db.collections;
   },
   getNotifications: () => db.notifications.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
   addNotification: (notification: Omit<Notification, 'id' | 'createdAt' | 'isRead'>) => {

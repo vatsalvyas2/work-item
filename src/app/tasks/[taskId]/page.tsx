@@ -4,7 +4,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Task, TaskStatus, TimelineEntry, Comment, Epic, Subtask, ExtensionRequest } from '@/lib/types';
+import { Task, TaskStatus, TimelineEntry, Comment, Collection, Subtask, ExtensionRequest } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -32,7 +32,7 @@ export default function TaskDetailsPage() {
   const taskId = params.taskId as string;
   
   const [task, setTask] = useState<Task | null>(null);
-  const [epic, setEpic] = useState<Epic | null>(null);
+  const [collection, setCollection] = useState<Collection | null>(null);
   const [dependencies, setDependencies] = useState<Task[]>([]);
   const [dependents, setDependents] = useState<Task[]>([]);
   const [comment, setComment] = useState('');
@@ -59,8 +59,8 @@ export default function TaskDetailsPage() {
     if (foundTask) {
         setTask(foundTask);
         if (foundTask.parentId) {
-            const foundEpic = database.getEpic(foundTask.parentId);
-            setEpic(foundEpic || null);
+            const foundCollection = database.getCollection(foundTask.parentId);
+            setCollection(foundCollection || null);
         }
         
         if(foundTask.dependsOn) {
@@ -265,12 +265,12 @@ export default function TaskDetailsPage() {
           case 'To Do':
               return <div className="flex gap-2">
                 {isAssignee && !task.extensionRequest && <Button variant="outline" onClick={() => setIsExtensionDialogOpen(true)}><Clock className="mr-2"/> Request Extension</Button>}
-                <Button onClick={() => handleStatusChange('In Progress')} disabled={isBlocked}><Play className="mr-2"/> Start Task</Button>
+                <Button onClick={() => handleStatusChange('In Progress')} disabled={isBlocked}><Play className="mr-2"/> Start Work Item</Button>
                 {baseActions}
               </div>
           case 'Blocked':
               return <div className="flex gap-2">
-                <Button disabled><Play className="mr-2"/> Start Task</Button>
+                <Button disabled><Play className="mr-2"/> Start Work Item</Button>
                 {baseActions}
               </div>
           case 'In Progress':
@@ -310,10 +310,9 @@ export default function TaskDetailsPage() {
                     <Button variant="ghost" onClick={() => router.back()} className="mb-2 -ml-4">
                         <ArrowLeft className="mr-2 h-4 w-4" /> Back to List
                     </Button>
-                    {epic && <p className="text-sm text-muted-foreground">{epic.project} / {task.id.toUpperCase()}</p>}
+                    {collection && <p className="text-sm text-muted-foreground">{collection.project} / {task.id.toUpperCase()}</p>}
                     <h1 className="text-3xl font-bold tracking-tight flex items-center gap-4">
                         {task.title}
-                        <Badge variant="outline">{task.taskType}</Badge>
                         {task.isCritical && <Badge variant="destructive"><ShieldAlert className="mr-1 h-3 w-3" /> Critical</Badge>}
                     </h1>
                 </div>
@@ -328,9 +327,9 @@ export default function TaskDetailsPage() {
                 {isOverdue && (
                      <Alert variant="destructive">
                         <AlertTriangle className="h-4 w-4" />
-                        <AlertTitle>Task Overdue</AlertTitle>
+                        <AlertTitle>Work Item Overdue</AlertTitle>
                         <AlertDescription>
-                            This task is past its due date of {format(task.dueDate!, 'PP')}.
+                            This work item is past its due date of {format(task.dueDate!, 'PP')}.
                         </AlertDescription>
                     </Alert>
                 )}
@@ -520,26 +519,18 @@ export default function TaskDetailsPage() {
                             <span className="text-muted-foreground">Priority</span>
                             <span className="flex items-center gap-1"><Flag className="h-4 w-4" />{task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}</span>
                         </div>
-                        {epic && (
+                        {collection && (
                             <div className="flex justify-between items-center">
-                                <span className="text-muted-foreground">Parent Epic</span>
-                                <Link href={`/epics/${epic.id}`} className="text-purple-600 font-semibold hover:underline">{epic.title}</Link>
+                                <span className="text-muted-foreground">Parent Collection</span>
+                                <Link href={`/collections/${collection.id}`} className="text-purple-600 font-semibold hover:underline">{collection.title}</Link>
                             </div>
                         )}
                         <Separator />
-                        <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground">Planned Start</span>
-                            <span>{task.plannedStartDate ? format(task.plannedStartDate, 'PP') : 'Not set'}</span>
-                        </div>
                         <div className="flex justify-between items-center">
                             <span className="text-muted-foreground">Due Date</span>
                             <span className={cn(isOverdue && 'text-destructive font-bold')}>
                                 {task.dueDate ? format(task.dueDate, 'PPp') : 'Not set'}
                             </span>
-                        </div>
-                         <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground">Duration</span>
-                            <span>{task.duration ? `${task.duration} hours` : 'Not set'}</span>
                         </div>
                         <Separator />
                         <div className="flex justify-between items-center">
@@ -707,5 +698,3 @@ export default function TaskDetailsPage() {
     </div>
   );
 }
-
-    

@@ -66,7 +66,6 @@ export function FilterControls({
             <SelectItem value="low">Low</SelectItem>
             <SelectItem value="medium">Medium</SelectItem>
             <SelectItem value="high">High</SelectItem>
-            <SelectItem value="none">None</SelectItem>
           </SelectContent>
         </Select>
       </div>

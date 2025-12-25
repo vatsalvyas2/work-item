@@ -45,8 +45,8 @@ function TasksSubMenu() {
                         </SidebarMenuSubButton>
                     </SidebarMenuSubItem>
                     <SidebarMenuSubItem>
-                        <SidebarMenuSubButton asChild isActive={pathname.startsWith('/tasks/epics') || pathname.startsWith('/epics')}>
-                             <Link href="/tasks/epics">Epics</Link>
+                        <SidebarMenuSubButton asChild isActive={pathname.startsWith('/tasks/collections') || pathname.startsWith('/collections')}>
+                             <Link href="/tasks/collections">Collections</Link>
                         </SidebarMenuSubButton>
                     </SidebarMenuSubItem>
                 </SidebarMenuSub>
@@ -96,11 +96,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     const getPageTitle = () => {
         if (pathname === '/') return 'Work Item Overview';
         if (pathname === '/tasks/list') return 'Work Item List';
-        if (pathname.startsWith('/tasks/epics')) return 'Epics';
+        if (pathname.startsWith('/tasks/collections')) return 'Collections';
         if (pathname.startsWith('/dashboard')) return 'Dashboard';
         if (pathname.startsWith('/reports')) return 'Reports';
         if (pathname.startsWith('/calendar')) return 'Calendar';
-        if (pathname.startsWith('/epics')) return 'Epic Details';
+        if (pathname.startsWith('/collections')) return 'Collection Details';
         if (pathname.startsWith('/tasks/')) return 'Work Item Details';
         if (pathname.startsWith('/settings')) return 'Settings';
         return 'Work Item';
