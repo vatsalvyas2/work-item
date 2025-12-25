@@ -4,16 +4,16 @@
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { Task, FilterStatus, FilterPriority, TaskStatus, Subtask, Epic } from "@/lib/types";
-import { TaskForm } from "@/components/monochrome-task/TaskForm";
-import { TaskList } from "@/components/monochrome-task/TaskList";
-import { FilterControls } from "@/components/monochrome-task/FilterControls";
+import { TaskForm } from "@/components/work-item/TaskForm";
+import { TaskList } from "@/components/work-item/TaskList";
+import { FilterControls } from "@/components/work-item/FilterControls";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TaskDashboard } from "@/components/monochrome-task/TaskDashboard";
-import { TaskCalendar } from "@/components/monochrome-task/TaskCalendar";
+import { TaskDashboard } from "@/components/work-item/TaskDashboard";
+import { TaskCalendar } from "@/components/work-item/TaskCalendar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LayoutDashboard, List, Calendar } from "lucide-react";
 import { database } from "@/lib/db";
-import { EpicList } from "@/components/monochrome-task/EpicList";
+import { EpicList } from "@/components/work-item/EpicList";
 
 
 export default function Home() {
@@ -116,7 +116,7 @@ export default function Home() {
       <main className="container mx-auto max-w-7xl p-4 sm:p-6 md:p-8">
         <header className="text-center mb-8">
           <h1 className="text-4xl font-bold tracking-tight font-headline">
-            MonochromeTask
+            Work Item
           </h1>
           <p className="text-muted-foreground mt-2">
             A minimalist approach to task management.

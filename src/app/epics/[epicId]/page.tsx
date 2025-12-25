@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Epic, Task } from '@/lib/types';
 import { database } from '@/lib/db';
-import { TaskList } from '@/components/monochrome-task/TaskList';
+import { TaskList } from '@/components/work-item/TaskList';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
