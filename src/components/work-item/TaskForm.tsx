@@ -341,13 +341,13 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
 
   const isRecurring = form.watch("isRecurring");
   const reviewRequired = form.watch("reviewRequired");
-  const reporter = form.watch("reporter");
+  const requester = form.watch("requester");
 
   useEffect(() => {
-      if (reviewRequired && reporter && !form.getValues("reviewer")) {
-          form.setValue("reviewer", reporter);
+      if (reviewRequired && requester && !form.getValues("reviewer")) {
+          form.setValue("reviewer", requester);
       }
-  }, [reviewRequired, reporter, form]);
+  }, [reviewRequired, requester, form]);
   
   const handleSubmit = (data: FormValues) => {
     
@@ -517,7 +517,29 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-                    <FormField
+                  <FormField
+                      control={form.control}
+                      name="priority"
+                      render={({ field }) => (
+                      <FormItem>
+                          <FormLabel>Priority</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                          <FormControl>
+                              <SelectTrigger>
+                              <SelectValue placeholder="Select priority" />
+                              </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                              <SelectItem value="low">Low</SelectItem>
+                              <SelectItem value="medium">Medium</SelectItem>
+                              <SelectItem value="high">High</SelectItem>
+                          </SelectContent>
+                          </Select>
+                          <FormMessage />
+                      </FormItem>
+                      )}
+                  />
+                  <FormField
                       control={form.control}
                       name="dueDate"
                       render={({ field }) => (
@@ -529,28 +551,6 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
                           <FormMessage />
                           </FormItem>
                       )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="priority"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Priority</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
-                            <FormControl>
-                                <SelectTrigger>
-                                <SelectValue placeholder="Select priority" />
-                                </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                <SelectItem value="low">Low</SelectItem>
-                                <SelectItem value="medium">Medium</SelectItem>
-                                <SelectItem value="high">High</SelectItem>
-                            </SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                        )}
                     />
                 </div>
 
