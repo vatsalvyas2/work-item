@@ -23,7 +23,7 @@ const transcribeAudioFlow = ai.defineFlow(
   },
   async ({ audioDataUri }) => {
     const { text } = await ai.generate({
-      model: 'googleai/gemini-2.5-flash',
+      model: 'googleai/gemini-2.5-flash-speech',
       prompt: [
         { media: { url: audioDataUri } },
         { text: 'Transcribe the spoken words in this audio recording.' },
