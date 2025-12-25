@@ -455,6 +455,21 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                  {!isRecurring && (
+                    <FormField
+                        control={form.control}
+                        name="dueDate"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Due Date & Time</FormLabel>
+                            <FormControl>
+                                <Input type="datetime-local" {...field} value={field.value || ''} />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                  )}
                   <FormField
                     control={form.control}
                     name="priority"
@@ -477,21 +492,6 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
                       </FormItem>
                     )}
                   />
-                  {!isRecurring && (
-                    <FormField
-                        control={form.control}
-                        name="dueDate"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Due Date & Time</FormLabel>
-                            <FormControl>
-                                <Input type="datetime-local" {...field} value={field.value || ''} />
-                            </FormControl>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                        />
-                  )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
