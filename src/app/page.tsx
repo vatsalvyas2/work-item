@@ -201,28 +201,25 @@ export default function Home() {
                 />
             </CardHeader>
             <CardContent>
-                <ul className="space-y-2">
+                <ul className="space-y-2 list-disc list-inside">
                     {collectionOrder.map(collection => {
                         const collectionTasks = tasksByCollection.grouped[collection.id] || [];
                         if (collectionTasks.length === 0) return null;
 
                         return (
-                            <li key={collection.id}>
-                                <div className="flex items-center gap-2 text-lg font-semibold text-purple-600">
-                                    <Book className="h-5 w-5" />
-                                    <span>{collection.title}</span>
-                                </div>
+                            <li key={collection.id} className="font-semibold">
+                                {collection.title}
                                 {collectionTasks.length > 0 && (
-                                    <ul className="pl-6 mt-2 space-y-1">
+                                    <ul className="pl-6 mt-1 space-y-1 font-normal list-disc list-inside">
                                         {collectionTasks.map(task => (
                                             <li key={task.id} 
                                                 onClick={() => handleSelectTask(task)}
-                                                className="flex items-center gap-2 cursor-pointer hover:bg-accent p-1 rounded-md"
-                                            >
-                                                <FileText className="h-4 w-4 text-muted-foreground" />
-                                                <span className={cn(
+                                                className={cn(
+                                                    "cursor-pointer hover:underline",
                                                     task.status === 'Done' && 'line-through text-muted-foreground'
-                                                )}>{task.title}</span>
+                                                )}
+                                            >
+                                                {task.title}
                                             </li>
                                         ))}
                                     </ul>
@@ -233,13 +230,12 @@ export default function Home() {
                     {tasksByCollection.standalone.map(task => (
                         <li key={task.id} 
                             onClick={() => handleSelectTask(task)}
-                            className="flex items-center gap-2 cursor-pointer hover:bg-accent p-1 rounded-md"
-                        >
-                            <FileText className="h-4 w-4 text-muted-foreground" />
-                            <span className={cn(
-                                "font-semibold",
+                             className={cn(
+                                "cursor-pointer hover:underline font-semibold",
                                 task.status === 'Done' && 'line-through text-muted-foreground'
-                            )}>{task.title}</span>
+                            )}
+                        >
+                            {task.title}
                         </li>
                     ))}
                 </ul>
