@@ -1,4 +1,5 @@
 
+
 export type TaskStatus =
   | 'To Do'
   | 'In Progress'
@@ -27,16 +28,17 @@ export type Comment = {
 }
 
 export type MonthlyRecurrence = {
-  mode: 'onDate' | 'onWeekday';
-  dates: number[]; // 1-31
-  weekdays: { order: 'First' | 'Second' | 'Third' | 'Fourth' | 'Last', day: number }[]; // day: 0-6 for Sun-Sat
+    mode: 'onDate' | 'onWeekday';
+    dates?: number[];
+    weekdays?: { order: 'First' | 'Second' | 'Third' | 'Fourth' | 'Last', day: number }[];
 }
 
 export type YearlyRecurrence = {
-  mode: 'onDate' | 'onWeekday';
-  dates: { month: number, day: number }[]; // month: 0-11
-  weekdays: { order: 'First' | 'Second' | 'Third' | 'Fourth' | 'Last', day: number, month: number }[];
+    mode: 'onDate' | 'onWeekday';
+    dates?: { month: number, day: number }[];
+    weekdays?: { order: 'First' | 'Second' | 'Third' | 'Fourth' | 'Last', day: number, month: number }[];
 }
+
 
 export type Recurrence = {
   interval: 'daily' | 'weekly' | 'monthly' | 'yearly';
@@ -97,6 +99,14 @@ export type Task = {
   extensionRequest?: ExtensionRequest;
 };
 
+export type Notification = {
+    id: string;
+    message: string;
+    createdAt: Date;
+    isRead: boolean;
+    taskId?: string; // Optional link to a task
+};
+
 export type FilterStatus = TaskStatus | 'all';
 export type FilterPriority = TaskPriority | 'all';
 
@@ -104,4 +114,5 @@ export type FilterPriority = TaskPriority | 'all';
 export type AppDatabase = {
   tasks: Task[];
   epics: Epic[];
+  notifications: Notification[];
 };

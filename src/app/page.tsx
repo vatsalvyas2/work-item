@@ -1,9 +1,10 @@
 
+
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import type { Task, FilterStatus, FilterPriority, TaskStatus, Subtask, Epic } from "@/lib/types";
+import type { Task, FilterStatus, FilterPriority, TaskStatus, Subtask, Epic, Notification } from "@/lib/types";
 import { TaskForm } from "@/components/work-item/TaskForm";
 import { TaskList } from "@/components/work-item/TaskList";
 import { FilterControls } from "@/components/work-item/FilterControls";
@@ -14,34 +15,43 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LayoutDashboard, List, Calendar } from "lucide-react";
 import { database } from "@/lib/db";
 import { EpicList } from "@/components/work-item/EpicList";
-import { useToast } from "@/hooks/use-toast";
+import { NotificationBell } from "@/components/work-item/NotificationBell";
 
 
 export default function Home() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [epics, setEpics] = useState<Epic[]>([]);
-  const [notifiedTasks, setNotifiedTasks] = useState<Set<string>>(new Set());
-  const { toast } = useToast();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
 
   useEffect(() => {
     setTasks(database.getTasks());
     setEpics(database.getEpics());
+    setNotifications(database.getNotifications());
   }, []);
 
+  // Effect to check for overdue tasks and create notifications
   useEffect(() => {
     const now = new Date();
+    let hasNewNotifications = false;
+
     tasks.forEach(task => {
       const isOverdue = task.dueDate && task.dueDate < now && task.status !== 'Done' && task.status !== 'Cancelled';
-      if (isOverdue && !notifiedTasks.has(task.id)) {
-        toast({
-          variant: "destructive",
-          title: "Task Overdue",
-          description: `The task "${task.title}" is delayed.`,
-        });
-        setNotifiedTasks(prev => new Set(prev).add(task.id));
+      if (isOverdue) {
+        const existingNotification = notifications.find(n => n.taskId === task.id);
+        if (!existingNotification) {
+            database.addNotification({
+              message: `Task "${task.title}" is overdue.`,
+              taskId: task.id,
+            });
+            hasNewNotifications = true;
+        }
       }
     });
-  }, [tasks, notifiedTasks, toast]);
+
+    if (hasNewNotifications) {
+        setNotifications(database.getNotifications());
+    }
+  }, [tasks, notifications]);
 
   const router = useRouter();
 
@@ -84,6 +94,20 @@ export default function Home() {
   
   const handleSelectTask = (task: Task) => {
     router.push(`/tasks/${task.id}`);
+  }
+
+  const handleNotificationClick = (notification: Notification) => {
+      if(notification.taskId) {
+        router.push(`/tasks/${notification.taskId}`);
+      }
+      const updatedNotifications = database.markNotificationsAsRead([notification.id]);
+      setNotifications(updatedNotifications);
+  }
+
+  const handleMarkAllAsRead = () => {
+    const unreadIds = notifications.filter(n => !n.isRead).map(n => n.id);
+    const updatedNotifications = database.markNotificationsAsRead(unreadIds);
+    setNotifications(updatedNotifications);
   }
 
   const filteredAndSortedTasks = useMemo(() => {
@@ -132,13 +156,15 @@ export default function Home() {
   return (
     <div className="bg-background text-foreground min-h-screen font-body">
       <main className="container mx-auto max-w-7xl p-4 sm:p-6 md:p-8">
-        <header className="text-center mb-8">
+        <header className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold tracking-tight font-headline">
             Work Item
           </h1>
-          <p className="text-muted-foreground mt-2">
-            A minimalist approach to task management.
-          </p>
+          <NotificationBell 
+            notifications={notifications}
+            onNotificationClick={handleNotificationClick}
+            onMarkAllAsRead={handleMarkAllAsRead}
+          />
         </header>
 
         <section className="mb-8">

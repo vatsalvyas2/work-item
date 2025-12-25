@@ -1,5 +1,6 @@
 
-import type { AppDatabase, Task, Epic } from './types';
+
+import type { AppDatabase, Task, Epic, Notification } from './types';
 
 // In-memory database
 let db: AppDatabase = {
@@ -67,7 +68,8 @@ let db: AppDatabase = {
       ],
     epics: [
         { id: 'epic-1', title: 'User Management Feature', project: 'SCRUM-5', description: 'Epic for user management' }
-    ]
+    ],
+    notifications: [],
 };
 
 // This is a simple in-memory database. In a real app, you'd use a proper database.
@@ -95,6 +97,24 @@ export const database = {
     db.epics.unshift(epic);
     return db.epics;
   },
+  getNotifications: () => db.notifications.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
+  addNotification: (notification: Omit<Notification, 'id' | 'createdAt' | 'isRead'>) => {
+    const newNotification: Notification = {
+      ...notification,
+      id: `notif-${Date.now()}`,
+      createdAt: new Date(),
+      isRead: false,
+    };
+    // Avoid adding duplicate notifications for the same overdue task
+    if (notification.taskId) {
+        const existing = db.notifications.find(n => n.taskId === notification.taskId && n.message.includes('is overdue'));
+        if (existing) return db.notifications;
+    }
+    db.notifications.unshift(newNotification);
+    return db.notifications;
+  },
+  markNotificationsAsRead: (ids: string[]) => {
+    db.notifications = db.notifications.map(n => ids.includes(n.id) ? { ...n, isRead: true } : n);
+    return db.notifications;
+  },
 };
-
-    

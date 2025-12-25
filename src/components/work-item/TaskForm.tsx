@@ -420,7 +420,6 @@ export function TaskForm({ onTaskSubmit, onEpicSubmit, epics, tasks }: TaskFormP
             
             <div className="relative py-2">
               <Separator />
-              <span className="absolute left-1/2 -translate-x-1/2 -top-3 bg-card px-2 text-sm text-muted-foreground">OR</span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
