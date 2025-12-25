@@ -60,7 +60,7 @@ function AppSidebarHeader() {
 
     return (
         <div className="p-4 border-b flex justify-between items-center">
-            <h1 className="text-2xl font-bold tracking-tight">{open ? "Work Item" : "WI"}</h1>
+            <h1 className="text-2xl font-bold tracking-tight">{open ? "Work Item" : ""}</h1>
             <SidebarTrigger>
                 <Button variant="ghost" size="icon">
                     <ChevronLeft />
@@ -155,7 +155,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 <main className="container mx-auto max-w-7xl p-4 sm:p-6 md:p-8">
                     <header className="flex justify-between items-center mb-8">
                       <div className="flex items-center gap-4">
-                        <SidebarTrigger className="md:hidden">
+                        <SidebarTrigger>
                              <Button variant="ghost" size="icon">
                                 <ChevronLeft />
                             </Button>
