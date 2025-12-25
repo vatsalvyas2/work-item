@@ -83,7 +83,7 @@ export function TaskCalendar({ tasks, onTaskSelect }: TaskCalendarProps) {
   const MAX_VISIBLE_TASKS = 2;
 
   return (
-    <div className="p-4 bg-white rounded-lg shadow">
+    <div className="p-4 bg-card rounded-lg shadow border">
       <div className="flex justify-between items-center mb-4">
         <Button variant="outline" size="icon" onClick={prevMonth}>
           <ChevronLeft className="h-4 w-4" />
@@ -93,10 +93,14 @@ export function TaskCalendar({ tasks, onTaskSelect }: TaskCalendarProps) {
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
-      <div className="grid grid-cols-7 border-t border-l border-gray-200">
+      
+      <div className="grid grid-cols-7 border-t border-l border-border">
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(day => (
-            <div key={day} className="py-2 text-center font-semibold text-sm bg-gray-50 text-gray-600 border-b border-r border-gray-200">{day}</div>
+            <div key={day} className="py-2 text-center font-semibold text-sm bg-muted text-muted-foreground border-b border-r border-border">{day}</div>
         ))}
+      </div>
+
+      <div className="grid grid-cols-7 border-l border-border">
         {days.map(day => {
             const dayTasks = tasksByDate[format(day, "yyyy-MM-dd")] || [];
             const visibleTasks = dayTasks.slice(0, MAX_VISIBLE_TASKS);
@@ -106,12 +110,17 @@ export function TaskCalendar({ tasks, onTaskSelect }: TaskCalendarProps) {
               <div
                 key={day.toString()}
                 className={cn(
-                  "relative bg-white p-2 min-h-[120px] border-b border-r border-gray-200",
-                  !isSameMonth(day, monthStart) && "bg-gray-50 opacity-50",
-                  isSameDay(day, new Date()) && "bg-blue-50"
+                  "relative bg-background p-2 min-h-[120px] border-b border-r border-border",
+                  !isSameMonth(day, monthStart) && "bg-muted/50",
+                  isSameDay(day, new Date()) && "bg-blue-50 dark:bg-blue-900/20"
                 )}
               >
-                <span className="font-semibold text-sm">{format(day, "d")}</span>
+                <span className={cn(
+                    "font-semibold text-sm",
+                    !isSameMonth(day, monthStart) && "text-muted-foreground"
+                )}>
+                    {format(day, "d")}
+                </span>
                 <div className="mt-1 space-y-1">
                   {visibleTasks.map(task => (
                     <div
