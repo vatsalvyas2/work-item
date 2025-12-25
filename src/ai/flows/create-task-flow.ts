@@ -25,7 +25,7 @@ const prompt = ai.definePrompt({
   name: 'createTaskPrompt',
   input: { schema: CreateTaskFromVoiceInputSchema },
   output: { schema: CreateTaskFromVoiceOutputSchema },
-  prompt: `You are an intelligent assistant that helps create tasks from a user's voice command.
+  prompt: `You are an intelligent assistant that helps create tasks from a user's voice command in English or Hindi/Hinglish.
 Your goal is to parse the user's command and extract the necessary information to fill out a task creation form.
 Today's date is {{currentDate}}. Use this to resolve relative dates like "tomorrow" or "next Friday".
 
@@ -40,6 +40,7 @@ Here are the available Tasks that can be dependencies:
 {{/each}}
 
 Analyze the user's command and fill in the fields of the output schema.
+- IMPORTANT: Take the user's description and enhance it. Rewrite it to be clearer, more detailed, and well-structured for a project management tool. Preserve the core meaning but improve the language and formatting.
 - For 'parentId', you MUST use the ID of the epic if the user mentions an epic title.
 - For 'dependsOn', you MUST use the task IDs if the user mentions task titles as dependencies.
 - Dates should be in 'YYYY-MM-DD' format.
