@@ -398,13 +398,17 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
   const recurrenceInterval = form.watch("recurrence.interval");
   const monthlyMode = form.watch("recurrence.monthly.mode");
   const yearlyMode = form.watch("recurrence.yearly.mode");
-  const assignees = users; // Both can be assignees
+  const assignees = users;
+
+  const cardTitle = currentUser.role === 'assignee' 
+    ? "Create a Self Assigned Work Item" 
+    : "Create a New Work Item";
   
   return (
     <>
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Create a New Work Item</CardTitle>
+        <CardTitle>{cardTitle}</CardTitle>
          <Button variant="outline" onClick={() => setIsVoicePanelOpen(prev => !prev)}>
             <Mic className="mr-2 h-4 w-4" />
             Auto Fill by Voice
