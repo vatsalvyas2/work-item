@@ -1,6 +1,7 @@
 
 'use client';
 
+import * as React from 'react';
 import { useState, useEffect, useMemo } from 'react';
 import { database } from '@/lib/db';
 import { useUser } from '@/contexts/UserContext';
