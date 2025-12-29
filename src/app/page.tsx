@@ -70,8 +70,8 @@ export default function Home() {
   };
 
   const addTask = (task: Omit<Task, "id" | "status" | "createdAt" | "timeline" | "subtasks" | "comments" >) => {
-    const updatedTasks = database.addTask(task);
-    setTasks([...updatedTasks]);
+    const newTasks = database.addTask(task);
+    setTasks([...newTasks]);
   };
   
   const handleSelectTask = (task: Task) => {
@@ -160,7 +160,7 @@ export default function Home() {
 
   return (
     <div className="space-y-8">
-        {currentUser.role === 'reporter' && (
+        {(currentUser.role === 'reporter' || currentUser.role === 'assignee') && (
           <section>
             <TaskForm 
               onTaskSubmit={addTask} 
