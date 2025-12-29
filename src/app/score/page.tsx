@@ -8,9 +8,10 @@ import { Task, User } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Award } from 'lucide-react';
+import { Award, Clock, AlertCircle, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
+import { Separator } from '@/components/ui/separator';
 
 interface UserScore {
   user: User;
@@ -96,18 +97,41 @@ export default function ScoreboardPage() {
                  <Table>
                     <TableHeader>
                         <TableRow>
-                        <TableHead>Task</TableHead>
-                        <TableHead className="text-right">Score</TableHead>
+                            <TableHead>Task</TableHead>
+                            <TableHead className="text-right">Score</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {selectedUserTasks.map(task => (
-                        <TableRow key={task.id} className="cursor-pointer" onClick={() => router.push(`/tasks/${task.id}`)}>
-                            <TableCell className="font-medium">{task.title}</TableCell>
-                            <TableCell className={cn("text-right font-bold", (task.score ?? 0) < -100 ? 'text-red-500' : 'text-green-600')}>
-                                {task.score ?? 'N/A'}
-                            </TableCell>
-                        </TableRow>
+                        <React.Fragment key={task.id}>
+                            <TableRow className="cursor-pointer" onClick={() => router.push(`/tasks/${task.id}`)}>
+                                <TableCell className="font-medium">{task.title}</TableCell>
+                                <TableCell className={cn("text-right font-bold", (task.score ?? 0) < -100 ? 'text-red-500' : 'text-green-600')}>
+                                    {task.score ?? 'N/A'}
+                                </TableCell>
+                            </TableRow>
+                             {task.scoreBreakdown && (
+                                <TableRow>
+                                    <TableCell colSpan={2} className="p-2 bg-muted/50">
+                                       <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                                            <div className="flex items-center justify-center gap-1 text-yellow-600">
+                                                <Clock className="h-3 w-3" />
+                                                <span>Ext: {-task.scoreBreakdown.extensionPenalty}</span>
+                                            </div>
+                                            <div className="flex items-center justify-center gap-1 text-orange-600">
+                                                <AlertCircle className="h-3 w-3" />
+                                                <span>Delay: {-task.scoreBreakdown.delayPenalty}</span>
+                                            </div>
+                                            <div className="flex items-center justify-center gap-1 text-red-600">
+                                                <RefreshCw className="h-3 w-3" />
+                                                <span>Rework: {-task.scoreBreakdown.reworkPenalty}</span>
+                                            </div>
+                                       </div>
+                                    </TableCell>
+                                </TableRow>
+                             )}
+                             <TableRow><TableCell colSpan={2} className="p-0"><Separator/></TableCell></TableRow>
+                        </React.Fragment>
                         ))}
                     </TableBody>
                 </Table>

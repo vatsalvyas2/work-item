@@ -1,29 +1,37 @@
 
-import type { Task } from './types';
+import type { Task, ScoreBreakdown } from './types';
 
 // CONSTANTS
 const PPM = 10 / (24 * 60); // Penalty Per Minute: 10 penalty points per day, normalized to minutes.
 const MAX_PENALTY = 25;
 
 /**
- * Calculates the score for a given task based on extension, delay, and rework penalties.
+ * Calculates the score and its breakdown for a given task.
  * @param task The task object to score.
- * @returns The final score for the task.
+ * @returns An object containing the final score and the breakdown of penalties.
  */
-export function calculateTaskScore(task: Task): number {
+export function calculateTaskScore(task: Task): { finalScore: number; breakdown: ScoreBreakdown } {
+  const breakdown: ScoreBreakdown = {
+    extensionPenalty: 0,
+    delayPenalty: 0,
+    reworkPenalty: 0,
+  };
+
   if (!task.completedAt) {
     // Cannot score an incomplete task
-    return 0;
+    return { finalScore: 0, breakdown };
   }
 
   const plannedTarget = task.originalDueDate;
   const expectedTarget = task.dueDate;
   const endTime = task.completedAt;
+  
+  breakdown.reworkPenalty = calculateReworkPenalty(task.reworkCount);
 
   // If we don't have the necessary dates, we can't calculate time-based penalties.
   if (!plannedTarget || !expectedTarget) {
-    const reworkPenalty = calculateReworkPenalty(task.reworkCount);
-    return -100 - reworkPenalty;
+    const finalScore = -100 - breakdown.reworkPenalty;
+    return { finalScore, breakdown };
   }
   
   const plannedTargetMs = plannedTarget.getTime();
@@ -37,7 +45,7 @@ export function calculateTaskScore(task: Task): number {
     ? 0
     : Math.min(1, Math.max(0, (endTimeMs - plannedTargetMs) / (expectedTargetMs - plannedTargetMs)));
             
-  const extensionPenalty = Math.min(
+  breakdown.extensionPenalty = Math.min(
     MAX_PENALTY,
     extensionMinutes * PPM * 10 * extensionUsageRatio
   );
@@ -45,24 +53,28 @@ export function calculateTaskScore(task: Task): number {
   // 2. DELAY PENALTY
   const delayMinutes = (endTimeMs > expectedTargetMs) ? (endTimeMs - expectedTargetMs) / (1000 * 60) : 0;
   
-  const delayPenalty = Math.min(
+  breakdown.delayPenalty = Math.min(
     MAX_PENALTY,
     delayMinutes * PPM
   );
-
-  // 3. REWORK PENALTY
-  const reworkPenalty = calculateReworkPenalty(task.reworkCount);
 
   // 4. FINAL SCORE
   const baseScore = -100;
   const timeAdjustedScore = Math.max(
     -100,
-    baseScore - extensionPenalty - delayPenalty
+    baseScore - breakdown.extensionPenalty - breakdown.delayPenalty
   );
   
-  const finalScore = timeAdjustedScore - reworkPenalty;
+  const finalScore = timeAdjustedScore - breakdown.reworkPenalty;
 
-  return Math.round(finalScore);
+  return { 
+      finalScore: Math.round(finalScore),
+      breakdown: {
+          extensionPenalty: Math.round(breakdown.extensionPenalty),
+          delayPenalty: Math.round(breakdown.delayPenalty),
+          reworkPenalty: Math.round(breakdown.reworkPenalty),
+      }
+  };
 }
 
 

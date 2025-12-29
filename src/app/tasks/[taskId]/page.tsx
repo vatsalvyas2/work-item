@@ -121,8 +121,9 @@ export default function TaskDetailsPage() {
     }
     if (newStatus === 'Done') {
         updatedTaskData.completedAt = new Date();
-        const score = calculateTaskScore({ ...task, ...updatedTaskData });
-        updatedTaskData.score = score;
+        const { finalScore, breakdown } = calculateTaskScore({ ...task, ...updatedTaskData });
+        updatedTaskData.score = finalScore;
+        updatedTaskData.scoreBreakdown = breakdown;
     }
     
     if (newStatus === 'Under Review' && task.reporter) {

@@ -73,6 +73,12 @@ export type ExtensionRequest = {
   status: 'pending' | 'approved' | 'rejected';
 }
 
+export type ScoreBreakdown = {
+  extensionPenalty: number;
+  delayPenalty: number;
+  reworkPenalty: number;
+}
+
 export type Task = {
   id: string;
   title: string;
@@ -102,6 +108,7 @@ export type Task = {
   extensionRequest?: ExtensionRequest;
   reworkCount?: number;
   score?: number;
+  scoreBreakdown?: ScoreBreakdown;
 };
 
 export type Notification = {
