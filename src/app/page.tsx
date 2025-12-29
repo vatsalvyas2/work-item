@@ -20,7 +20,13 @@ export default function Home() {
 
 
   useEffect(() => {
-    setTasks(database.getTasks());
+    const allTasks = database.getTasks();
+    if (currentUser.role === 'assignee') {
+      setTasks(allTasks.filter(task => task.assignee === currentUser.name));
+    } else {
+      setTasks(allTasks);
+    }
+
     setCollections(database.getCollections());
     setNotifications(database.getNotifications().filter(n => !n.recipient || n.recipient === currentUser.name));
   }, [currentUser]);
@@ -71,7 +77,12 @@ export default function Home() {
 
   const addTask = (task: Omit<Task, "id" | "status" | "createdAt" | "timeline" | "subtasks" | "comments" >) => {
     const newTasks = database.addTask(task);
-    setTasks([...newTasks]);
+    const allTasks = database.getTasks();
+    if (currentUser.role === 'assignee') {
+      setTasks(allTasks.filter(task => task.assignee === currentUser.name));
+    } else {
+      setTasks([...allTasks]);
+    }
   };
   
   const handleSelectTask = (task: Task) => {
