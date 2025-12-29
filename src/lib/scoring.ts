@@ -21,8 +21,8 @@ export function calculateTaskScore(task: Task): { finalScore: number; breakdown:
     // Cannot score an incomplete task
     return { finalScore: 0, breakdown };
   }
-  
-  // 3. REWORK PENALTY
+
+  // REWORK PENALTY
   breakdown.reworkPenalty = calculateReworkPenalty(task.reworkCount);
 
   // If we don't have the necessary dates, we can only calculate the rework penalty.
@@ -42,10 +42,10 @@ export function calculateTaskScore(task: Task): { finalScore: number; breakdown:
   const expectedTargetMs = task.dueDate.getTime();
   const endTimeMs = task.completedAt.getTime();
 
-  // 1. EXTENSION PENALTY
+  // EXTENSION PENALTY
   const extensionMinutes = (expectedTargetMs > plannedTargetMs) ? (expectedTargetMs - plannedTargetMs) / (1000 * 60) : 0;
   
-  const extensionUsageRatio = (expectedTargetMs === plannedTargetMs)
+  const extensionUsageRatio = (expectedTargetMs === plannedTargetMs || endTimeMs <= plannedTargetMs)
     ? 0
     : Math.min(
         1,
@@ -60,7 +60,7 @@ export function calculateTaskScore(task: Task): { finalScore: number; breakdown:
     extensionMinutes * PPM * 10 * extensionUsageRatio
   );
 
-  // 2. DELAY PENALTY
+  // DELAY PENALTY
   const delayMinutes = (endTimeMs > expectedTargetMs) ? (endTimeMs - expectedTargetMs) / (1000 * 60) : 0;
   
   breakdown.delayPenalty = Math.min(
@@ -68,7 +68,7 @@ export function calculateTaskScore(task: Task): { finalScore: number; breakdown:
     delayMinutes * PPM
   );
 
-  // 4. FINAL SCORE
+  // FINAL SCORE
   const baseScore = 0;
   const totalPenalty = breakdown.extensionPenalty + breakdown.delayPenalty + breakdown.reworkPenalty;
   
@@ -95,8 +95,6 @@ function calculateReworkPenalty(reworkCount?: number): number {
     if (!reworkCount || reworkCount === 0) {
         return 0;
     }
-    // Exponential penalty for each rework, capped at MAX_PENALTY_PER_CATEGORY
     const penalty = Math.pow(3, reworkCount);
     return Math.min(MAX_PENALTY_PER_CATEGORY, penalty);
 }
-
