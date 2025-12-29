@@ -15,7 +15,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Textarea } from "../ui/textarea";
 import { Collection } from "@/lib/types";
 import { Plus } from "lucide-react";
@@ -46,13 +45,8 @@ export function CollectionForm({ onCollectionSubmit }: CollectionFormProps) {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Create a New Collection</CardTitle>
-      </CardHeader>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)}>
-          <CardContent className="space-y-6">
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
             <FormField
               control={form.control}
               name="title"
@@ -79,15 +73,13 @@ export function CollectionForm({ onCollectionSubmit }: CollectionFormProps) {
                 </FormItem>
               )}
             />
-          </CardContent>
-          <CardFooter>
-            <Button type="submit">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Collection
-            </Button>
-          </CardFooter>
+            <div className="flex justify-end">
+                <Button type="submit">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Collection
+                </Button>
+            </div>
         </form>
       </Form>
-    </Card>
   );
 }
