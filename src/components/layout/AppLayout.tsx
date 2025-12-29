@@ -8,7 +8,7 @@ import { SidebarProvider, Sidebar, SidebarTrigger, SidebarMenu, SidebarMenuItem,
 import { LayoutDashboard, List, BarChart3, Settings, Calendar, BookOpen, ChevronLeft, User, ChevronsUpDown } from 'lucide-react';
 import { NotificationBell } from '../work-item/NotificationBell';
 import { database } from '@/lib/db';
-import { Notification, UserRole } from '@/lib/types';
+import { Notification } from '@/lib/types';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -83,7 +83,6 @@ function UserSwitcher() {
                     <User className="mr-2 h-4 w-4" />
                     <div className="flex flex-col items-start">
                       <span className="text-sm font-medium">{currentUser.name}</span>
-                      <span className="text-xs text-muted-foreground capitalize">{currentUser.role}</span>
                     </div>
                     <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
                 </Button>

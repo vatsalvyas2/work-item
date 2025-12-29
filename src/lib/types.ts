@@ -1,10 +1,7 @@
 
 
-export type UserRole = 'reporter' | 'assignee';
-
 export type User = {
     name: string;
-    role: UserRole;
 }
 
 export type TaskStatus =

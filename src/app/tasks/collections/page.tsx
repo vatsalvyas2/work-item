@@ -6,7 +6,6 @@ import { CollectionList } from '@/components/work-item/CollectionList';
 import { database } from '@/lib/db';
 import { Collection } from '@/lib/types';
 import { CollectionForm } from '@/components/work-item/CollectionForm';
-import { useUser } from '@/contexts/UserContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
@@ -15,7 +14,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 export default function CollectionsPage() {
     const [collections, setCollections] = useState<Collection[]>([]);
     const [isFormOpen, setIsFormOpen] = useState(false);
-    const { currentUser } = useUser();
 
     useEffect(() => {
         setCollections(database.getCollections());
@@ -39,24 +37,22 @@ export default function CollectionsPage() {
                     <CardHeader>
                         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                             <CardTitle>Collections</CardTitle>
-                             {currentUser.role === 'reporter' && (
-                                <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                                    <DialogTrigger asChild>
-                                        <Button>
-                                            <Plus className="mr-2 h-4 w-4" />
-                                            Add Collection
-                                        </Button>
-                                    </DialogTrigger>
-                                    <DialogContent>
-                                        <DialogHeader>
-                                            <DialogTitle>Create Collection</DialogTitle>
-                                        </DialogHeader>
-                                        <div className="py-4">
-                                            <CollectionForm onCollectionSubmit={addCollection} />
-                                        </div>
-                                    </DialogContent>
-                                </Dialog>
-                            )}
+                            <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+                                <DialogTrigger asChild>
+                                    <Button>
+                                        <Plus className="mr-2 h-4 w-4" />
+                                        Add Collection
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>Create Collection</DialogTitle>
+                                    </DialogHeader>
+                                    <div className="py-4">
+                                        <CollectionForm onCollectionSubmit={addCollection} />
+                                    </div>
+                                </DialogContent>
+                            </Dialog>
                         </div>
                     </CardHeader>
                     <CardContent>

@@ -22,12 +22,7 @@ export default function TaskListPage() {
   const { currentUser } = useUser();
 
   useEffect(() => {
-    const allTasks = database.getTasks();
-    if (currentUser.role === 'assignee') {
-      setTasks(allTasks.filter(task => task.assignee === currentUser.name));
-    } else {
-      setTasks(allTasks);
-    }
+    setTasks(database.getTasks());
     setCollections(database.getCollections());
   }, [currentUser]);
 
@@ -41,12 +36,7 @@ export default function TaskListPage() {
 
   const addTask = (task: Omit<Task, "id" | "status" | "createdAt" | "timeline" | "subtasks" | "comments" >) => {
     database.addTask(task);
-    const allTasks = database.getTasks();
-    if (currentUser.role === 'assignee') {
-      setTasks(allTasks.filter(task => task.assignee === currentUser.name));
-    } else {
-      setTasks([...allTasks]);
-    }
+    setTasks([...database.getTasks()]);
     setIsFormOpen(false);
   };
 
@@ -104,28 +94,26 @@ export default function TaskListPage() {
             <CardHeader>
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                 <CardTitle>Your Work Items</CardTitle>
-                {(currentUser.role === 'reporter' || currentUser.role === 'assignee') && (
-                    <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                        <DialogTrigger asChild>
-                            <Button>
-                                <Plus className="mr-2 h-4 w-4" />
-                                Add Work Item
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-4xl">
-                            <DialogHeader>
-                                <DialogTitle>Create Work Item</DialogTitle>
-                            </DialogHeader>
-                            <div className="py-4 max-h-[80vh] overflow-y-auto">
-                                <TaskForm 
-                                    onTaskSubmit={addTask} 
-                                    collections={collections}
-                                    tasks={tasks}
-                                />
-                            </div>
-                        </DialogContent>
-                    </Dialog>
-                )}
+                <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+                    <DialogTrigger asChild>
+                        <Button>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add Work Item
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-4xl">
+                        <DialogHeader>
+                            <DialogTitle>Create Work Item</DialogTitle>
+                        </DialogHeader>
+                        <div className="py-4 max-h-[80vh] overflow-y-auto">
+                            <TaskForm 
+                                onTaskSubmit={addTask} 
+                                collections={collections}
+                                tasks={tasks}
+                            />
+                        </div>
+                    </DialogContent>
+                </Dialog>
                 </div>
                 <FilterControls
                 statusFilter={statusFilter}

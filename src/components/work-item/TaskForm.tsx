@@ -186,13 +186,7 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
   });
   
   useEffect(() => {
-    if (currentUser.role === 'reporter') {
-      form.setValue('reporter', currentUser.name);
-    } else if (currentUser.role === 'assignee') {
-      form.setValue('reporter', currentUser.name);
-      form.setValue('requester', currentUser.name);
-      form.setValue('assignee', currentUser.name);
-    }
+    form.setValue('reporter', currentUser.name);
   }, [currentUser, form]);
 
   const { fields: monthlyWeekdayFields, append: appendMonthlyWeekday, remove: removeMonthlyWeekday } = useFieldArray({
@@ -400,9 +394,7 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
   const yearlyMode = form.watch("recurrence.yearly.mode");
   const assignees = users;
 
-  const cardTitle = currentUser.role === 'assignee' 
-    ? "Create a Self Assigned Work Item" 
-    : "Create a New Work Item";
+  const cardTitle = "Create a New Work Item";
   
   return (
     <>
@@ -516,7 +508,7 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Assignee</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value || ''} disabled={currentUser.role === 'assignee'}>
+                        <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value || ''}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select an assignee" />
@@ -539,7 +531,7 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
                         <FormItem>
                           <FormLabel>Requester</FormLabel>
                           <FormControl>
-                            <Input placeholder="e.g., Vatsal Vyas" {...field} value={field.value || ''} disabled={currentUser.role === 'assignee'}/>
+                            <Input placeholder="e.g., Vatsal Vyas" {...field} value={field.value || ''} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -554,7 +546,7 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
                         <FormItem>
                           <FormLabel>Reporter</FormLabel>
                           <FormControl>
-                            <Input readOnly {...field} value={field.value || ''} disabled={currentUser.role === 'assignee'}/>
+                            <Input readOnly {...field} value={field.value || ''} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
