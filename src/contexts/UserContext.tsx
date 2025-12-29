@@ -7,6 +7,10 @@ import type { User, UserRole } from '@/lib/types';
 const users: User[] = [
     { name: 'Presh Chopra', role: 'reporter' },
     { name: 'Vatsal Vyas', role: 'assignee' },
+    { name: 'Avinash Mahajan', role: 'assignee' },
+    { name: 'Jatin Malhotra', role: 'assignee' },
+    { name: 'Prince Jha', role: 'assignee' },
+    { name: 'Chethan', role: 'assignee' },
 ];
 
 interface UserContextType {
