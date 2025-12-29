@@ -29,7 +29,13 @@ export function calculateTaskScore(task: Task): { finalScore: number; breakdown:
   if (!task.originalDueDate || !task.dueDate) {
     const scoreWithoutTimePenalties = 0 - breakdown.reworkPenalty;
     const finalScore = Math.max(-75, scoreWithoutTimePenalties);
-    return { finalScore, breakdown };
+    return { 
+        finalScore, 
+        breakdown: {
+            ...breakdown,
+            reworkPenalty: Math.round(breakdown.reworkPenalty)
+        }
+    };
   }
   
   const plannedTargetMs = task.originalDueDate.getTime();
@@ -90,6 +96,7 @@ function calculateReworkPenalty(reworkCount?: number): number {
         return 0;
     }
     // Exponential penalty for each rework, capped at MAX_PENALTY_PER_CATEGORY
-    const penalty = Math.pow(3, Math.min(reworkCount, 3)); // Max of 3 reworks for penalty calc
+    const penalty = Math.pow(3, reworkCount);
     return Math.min(MAX_PENALTY_PER_CATEGORY, penalty);
 }
+
