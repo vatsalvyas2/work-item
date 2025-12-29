@@ -21,15 +21,15 @@ import { Button } from '../ui/button';
 function TasksSubMenu() {
     const pathname = usePathname();
     const { open } = useSidebar();
-    const isTasksActive = pathname.startsWith('/tasks') || pathname.startsWith('/collections');
+    const isWorkItemActive = pathname.startsWith('/tasks') || pathname.startsWith('/collections');
 
     return (
-        <Collapsible defaultOpen={isTasksActive}>
+        <Collapsible defaultOpen={isWorkItemActive}>
             <CollapsibleTrigger asChild>
                 <SidebarMenuButton 
                     variant="ghost" 
                     className="w-full justify-start"
-                    isActive={isTasksActive}
+                    isActive={isWorkItemActive}
                 >
                     <List />
                     <span>Work Item</span>
@@ -45,7 +45,7 @@ function TasksSubMenu() {
                     </SidebarMenuSubItem>
                     <SidebarMenuSubItem>
                         <SidebarMenuSubButton asChild isActive={pathname.startsWith('/tasks/collections') || pathname.startsWith('/collections')}>
-                             <Link href="/tasks/collections">Collections</Link>
+                             <Link href="/tasks/collections">Collections List</Link>
                         </SidebarMenuSubButton>
                     </SidebarMenuSubItem>
                 </SidebarMenuSub>
@@ -151,7 +151,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
     const getPageTitle = () => {
         if (pathname === '/tasks/list') return 'Work Item List';
-        if (pathname.startsWith('/tasks/collections')) return 'Collections';
+        if (pathname.startsWith('/tasks/collections')) return 'Collections List';
         if (pathname.startsWith('/dashboard')) return 'Dashboard';
         if (pathname.startsWith('/reports')) return 'Reports';
         if (pathname.startsWith('/calendar')) return 'Calendar';
