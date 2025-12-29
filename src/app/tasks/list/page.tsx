@@ -3,19 +3,33 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import type { Task, FilterStatus, FilterPriority, TaskStatus } from "@/lib/types";
+import type { Task, FilterStatus, FilterPriority, TaskStatus, Collection } from "@/lib/types";
 import { TaskList } from "@/components/work-item/TaskList";
 import { FilterControls } from "@/components/work-item/FilterControls";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { database } from "@/lib/db";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { TaskForm } from "@/components/work-item/TaskForm";
+import { useUser } from "@/contexts/UserContext";
 
 
 export default function TaskListPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [collections, setCollections] = useState<Collection[]>([]);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const { currentUser } = useUser();
 
   useEffect(() => {
-    setTasks(database.getTasks());
-  }, []);
+    const allTasks = database.getTasks();
+    if (currentUser.role === 'assignee') {
+      setTasks(allTasks.filter(task => task.assignee === currentUser.name));
+    } else {
+      setTasks(allTasks);
+    }
+    setCollections(database.getCollections());
+  }, [currentUser]);
 
   const router = useRouter();
 
@@ -24,6 +38,17 @@ export default function TaskListPage() {
     "all"
   );
   const [sortBy, setSortBy] = useState<"dueDate" | "priority">("dueDate");
+
+  const addTask = (task: Omit<Task, "id" | "status" | "createdAt" | "timeline" | "subtasks" | "comments" >) => {
+    database.addTask(task);
+    const allTasks = database.getTasks();
+    if (currentUser.role === 'assignee') {
+      setTasks(allTasks.filter(task => task.assignee === currentUser.name));
+    } else {
+      setTasks([...allTasks]);
+    }
+    setIsFormOpen(false);
+  };
 
   const handleSelectTask = (task: Task) => {
     router.push(`/tasks/${task.id}`);
@@ -52,7 +77,7 @@ export default function TaskListPage() {
 
     filtered.sort((a, b) => {
       if (sortBy === "priority") {
-        const priorityOrder = { high: 0, medium: 1, low: 2, none: 3 };
+        const priorityOrder = { high: 0, medium: 1, low: 2 };
         const priorityComparison = priorityOrder[a.priority] - priorityOrder[b.priority];
         if (priorityComparison !== 0) return priorityComparison;
       }
@@ -79,6 +104,28 @@ export default function TaskListPage() {
             <CardHeader>
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                 <CardTitle>Your Work Items</CardTitle>
+                {(currentUser.role === 'reporter' || currentUser.role === 'assignee') && (
+                    <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+                        <DialogTrigger asChild>
+                            <Button>
+                                <Plus className="mr-2 h-4 w-4" />
+                                Add Work Item
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-4xl">
+                            <DialogHeader>
+                                <DialogTitle>Create Work Item</DialogTitle>
+                            </DialogHeader>
+                            <div className="py-4 max-h-[80vh] overflow-y-auto">
+                                <TaskForm 
+                                    onTaskSubmit={addTask} 
+                                    collections={collections}
+                                    tasks={tasks}
+                                />
+                            </div>
+                        </DialogContent>
+                    </Dialog>
+                )}
                 </div>
                 <FilterControls
                 statusFilter={statusFilter}
