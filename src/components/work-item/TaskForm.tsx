@@ -137,7 +137,7 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
   const [transcript, setTranscript] = useState('');
   const [isMicSupported, setIsMicSupported] = useState(true);
   const [recordingTime, setRecordingTime] = useState(0);
-  const { currentUser } = useUser();
+  const { currentUser, users } = useUser();
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -389,6 +389,7 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
   const recurrenceInterval = form.watch("recurrence.interval");
   const monthlyMode = form.watch("recurrence.monthly.mode");
   const yearlyMode = form.watch("recurrence.yearly.mode");
+  const assignees = users.filter(u => u.role === 'assignee');
   
   return (
     <>
@@ -472,19 +473,28 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
 
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="assignee"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Assignee</FormLabel>
+                  <FormField
+                    control={form.control}
+                    name="assignee"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Assignee</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value || ''}>
                           <FormControl>
-                            <Input placeholder="e.g., Jane Doe" {...field} value={field.value || ''} />
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select an assignee" />
+                            </SelectTrigger>
                           </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                          <SelectContent>
+                            {assignees.map(assignee => (
+                              <SelectItem key={assignee.name} value={assignee.name}>{assignee.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                     <FormField
                       control={form.control}
                       name="requester"
@@ -947,3 +957,5 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
     </>
   );
 }
+
+    
