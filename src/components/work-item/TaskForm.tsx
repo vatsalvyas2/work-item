@@ -179,7 +179,7 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
       parentId: "none",
       dependsOn: [],
       assignee: "",
-      reporter: currentUser.name,
+      reporter: "",
       requester: "",
       dueDate: "",
     },
@@ -555,19 +555,6 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
                   <FormField
                       control={form.control}
-                      name="dueDate"
-                      render={({ field }) => (
-                          <FormItem>
-                          <FormLabel>Due Date & Time</FormLabel>
-                          <FormControl>
-                              <Input type="datetime-local" {...field} value={field.value || ''} />
-                          </FormControl>
-                          <FormMessage />
-                          </FormItem>
-                      )}
-                    />
-                  <FormField
-                      control={form.control}
                       name="priority"
                       render={({ field }) => (
                       <FormItem>
@@ -588,6 +575,19 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
                       </FormItem>
                       )}
                   />
+                   <FormField
+                      control={form.control}
+                      name="dueDate"
+                      render={({ field }) => (
+                          <FormItem>
+                          <FormLabel>Due Date & Time</FormLabel>
+                          <FormControl>
+                              <Input type="datetime-local" {...field} value={field.value || ''} />
+                          </FormControl>
+                          <FormMessage />
+                          </FormItem>
+                      )}
+                    />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
