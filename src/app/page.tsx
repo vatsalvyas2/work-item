@@ -70,9 +70,8 @@ export default function Home() {
   };
 
   const addTask = (task: Omit<Task, "id" | "status" | "createdAt" | "timeline" | "subtasks" | "comments" >) => {
-    
-    database.addTask(task)
-    setTasks(database.getTasks());
+    const updatedTasks = database.addTask(task);
+    setTasks([...updatedTasks]);
   };
   
   const handleSelectTask = (task: Task) => {
