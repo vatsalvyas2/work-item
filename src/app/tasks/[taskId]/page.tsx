@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -10,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Repeat, Plus, Send, Edit, Play, ShieldAlert, Flag, Check, X, MessageSquare, Pause, Ban, History, CalendarIcon, Link as LinkIcon, AlertTriangle, Clock, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { ArrowLeft, Repeat, Plus, Send, Edit, Play, ShieldAlert, Flag, Check, X, MessageSquare, Pause, Ban, History, CalendarIcon, Link as LinkIcon, AlertTriangle, Clock, ThumbsUp, ThumbsDown, Award } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
@@ -25,6 +26,7 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useUser } from '@/contexts/UserContext';
+import { calculateTaskScore } from '@/lib/scoring';
 
 
 export default function TaskDetailsPage() {
@@ -119,9 +121,11 @@ export default function TaskDetailsPage() {
     }
     if (newStatus === 'Done') {
         updatedTaskData.completedAt = new Date();
+        const score = calculateTaskScore({ ...task, ...updatedTaskData });
+        updatedTaskData.score = score;
     }
     
-    if (newStatus === 'Under Review') {
+    if (newStatus === 'Under Review' && task.reporter) {
         database.addNotification({
             message: `Work Item "${task.title}" is ready for review.`,
             taskId: task.id,
@@ -148,13 +152,32 @@ export default function TaskDetailsPage() {
   };
   
   const handleReworkSubmit = () => {
+    if(!task) return;
+
     let combinedDueDate: Date | undefined = newDueDate;
     if(newDueDate && newDueTime) {
       const [hours, minutes] = newDueTime.split(':').map(Number);
       combinedDueDate = new Date(newDueDate);
       combinedDueDate.setHours(hours, minutes);
     }
-    handleStatusChange('In Progress', `Rework requested: ${reworkComment}`, combinedDueDate);
+    const currentReworkCount = task.reworkCount || 0;
+    
+    const reworkTimeline: TimelineEntry = {
+        id: `tl-${Date.now()}-rework`,
+        timestamp: new Date(),
+        action: 'Rework Requested',
+        user: currentUser.name,
+        details: `Rework #${currentReworkCount + 1}. Reason: ${reworkComment}`
+    };
+
+    const updatedTask = database.updateTask(task.id, { 
+        status: 'In Progress', 
+        reworkCount: currentReworkCount + 1,
+        dueDate: combinedDueDate,
+        timeline: [...task.timeline, reworkTimeline]
+    });
+    setTask(updatedTask);
+
     setIsReworkDialogOpen(false);
     setReworkComment('');
   }
@@ -219,11 +242,13 @@ export default function TaskDetailsPage() {
       details: `New due date: ${format(combinedDueDate, 'PP p')}. Reason: ${extensionReason}`
     };
 
-    database.addNotification({
-        message: `${currentUser.name} requested an extension for "${task.title}".`,
-        taskId: task.id,
-        recipient: task.reporter,
-    });
+    if(task.reporter) {
+      database.addNotification({
+          message: `${currentUser.name} requested an extension for "${task.title}".`,
+          taskId: task.id,
+          recipient: task.reporter,
+      });
+    }
 
     const updatedTask = database.updateTask(task.id, { extensionRequest, timeline: [...task.timeline, timelineEntry] });
     setTask(updatedTask);
@@ -262,9 +287,6 @@ export default function TaskDetailsPage() {
 
   const renderTaskActions = () => {
       if(!task) return null;
-
-      const isAssignee = currentUser.name === task.assignee;
-      const isReporter = currentUser.role === 'reporter';
       
       const baseActions = (
         <div className="flex gap-2">
@@ -276,28 +298,28 @@ export default function TaskDetailsPage() {
       switch(task.status) {
           case 'To Do':
               return <div className="flex gap-2">
-                {isAssignee && !task.extensionRequest && <Button variant="outline" onClick={() => setIsExtensionDialogOpen(true)}><Clock className="mr-2"/> Request Extension</Button>}
-                {isAssignee && <Button onClick={() => handleStatusChange('In Progress')} disabled={isBlocked}><Play className="mr-2"/> Start Work Item</Button>}
-                {isAssignee && baseActions}
+                {!task.extensionRequest && <Button variant="outline" onClick={() => setIsExtensionDialogOpen(true)}><Clock className="mr-2"/> Request Extension</Button>}
+                <Button onClick={() => handleStatusChange('In Progress')} disabled={isBlocked}><Play className="mr-2"/> Start Work Item</Button>
+                {baseActions}
               </div>
           case 'Blocked':
               return <div className="flex gap-2">
                 <Button disabled><Play className="mr-2"/> Start Work Item</Button>
-                {isAssignee && baseActions}
+                {baseActions}
               </div>
           case 'In Progress':
               return <div className="flex gap-2">
-                  {task.reviewRequired && isAssignee && <Button onClick={() => handleStatusChange('Under Review')}>Send for Review</Button>}
-                  {!task.reviewRequired && isAssignee && <Button onClick={() => handleStatusChange('Done')}><Check className="mr-2"/> Mark as Done</Button>}
-                  {isAssignee && baseActions}
+                  {task.reviewRequired && <Button onClick={() => handleStatusChange('Under Review')}>Send for Review</Button>}
+                  {!task.reviewRequired && <Button onClick={() => handleStatusChange('Done')}><Check className="mr-2"/> Mark as Done</Button>}
+                  {baseActions}
               </div>
           case 'On Hold':
              return <div className="flex gap-2">
-                {isAssignee && <Button onClick={() => handleStatusChange('In Progress')}><Play className="mr-2"/> Resume</Button>}
-                {isAssignee && <Button variant="destructive" onClick={() => handleStatusChange('Cancelled')}><Ban className="mr-2"/> Cancel</Button>}
+                <Button onClick={() => handleStatusChange('In Progress')}><Play className="mr-2"/> Resume</Button>
+                <Button variant="destructive" onClick={() => handleStatusChange('Cancelled')}><Ban className="mr-2"/> Cancel</Button>
             </div>
           case 'Under Review':
-              if (isReporter) {
+              if (currentUser.name === task.reporter) {
                   return (
                       <div className="flex gap-2">
                           <Button variant="outline" onClick={() => setIsReworkDialogOpen(true)}><X className="mr-2"/> Rework</Button>
@@ -345,7 +367,7 @@ export default function TaskDetailsPage() {
                     </Alert>
                 )}
 
-                {task.extensionRequest?.status === 'pending' && currentUser.role === 'reporter' && (
+                {task.extensionRequest?.status === 'pending' && currentUser.name === task.reporter && (
                     <Alert variant="default" className="border-yellow-400 bg-yellow-50">
                         <Clock className="h-4 w-4 !text-yellow-600" />
                         <AlertTitle className="text-yellow-800">Extension Request Pending</AlertTitle>
@@ -544,6 +566,17 @@ export default function TaskDetailsPage() {
                             </span>
                         </div>
                         <Separator />
+                         {task.score !== undefined && (
+                           <>
+                            <div className="flex justify-between items-center">
+                                <span className="text-muted-foreground">Score</span>
+                                <span className={cn("font-bold flex items-center gap-1", task.score < -100 ? 'text-red-500' : 'text-green-600' )}>
+                                    <Award className="h-4 w-4"/> {task.score}
+                                </span>
+                            </div>
+                            <Separator />
+                           </>
+                        )}
                         <div className="flex justify-between items-center">
                             <span className="text-muted-foreground">Created</span>
                             <span>{format(task.createdAt, 'PP')}</span>
@@ -576,7 +609,7 @@ export default function TaskDetailsPage() {
                                 )}>
                                     <p><strong>Status:</strong> <span className="capitalize">{task.extensionRequest.status}</span></p>
                                     <p><strong>Requested Date:</strong> {format(task.extensionRequest.newDueDate, 'PPp')}</p>
-                                    <p><strong>Original Date:</strong> {task.dueDate ? format(task.dueDate, 'PPp') : 'N/A'}</p>
+                                    <p><strong>Original Date:</strong> {task.originalDueDate ? format(task.originalDueDate, 'PPp') : 'N/A'}</p>
                                 </div>
                             </div>
                            </>

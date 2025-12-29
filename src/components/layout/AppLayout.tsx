@@ -1,11 +1,12 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { SidebarProvider, Sidebar, SidebarTrigger, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarInset, SidebarMenuSub, SidebarMenuSubItem, SidebarMenuSubButton, useSidebar, SidebarRail } from '@/components/ui/sidebar';
-import { LayoutDashboard, List, BarChart3, Settings, Calendar, BookOpen, ChevronLeft, User, ChevronsUpDown } from 'lucide-react';
+import { LayoutDashboard, List, BarChart3, Settings, Calendar, BookOpen, ChevronLeft, User, ChevronsUpDown, Award } from 'lucide-react';
 import { NotificationBell } from '../work-item/NotificationBell';
 import { database } from '@/lib/db';
 import { Notification } from '@/lib/types';
@@ -157,6 +158,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         if (pathname.startsWith('/collections')) return 'Collection Details';
         if (pathname.startsWith('/tasks/')) return 'Work Item Details';
         if (pathname.startsWith('/settings')) return 'Settings';
+        if (pathname.startsWith('/score')) return 'Scoreboard';
         return 'Work Item';
     }
 
@@ -180,6 +182,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                                 <SidebarMenuButton href="/dashboard" isActive={pathname === '/dashboard'} tooltip="Dashboard">
                                     <LayoutDashboard />
                                     <span>Dashboard</span>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                             <SidebarMenuItem>
+                                <SidebarMenuButton href="/score" isActive={pathname === '/score'} tooltip="Scoreboard">
+                                    <Award />
+                                    <span>Scoreboard</span>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
                             <SidebarMenuItem>

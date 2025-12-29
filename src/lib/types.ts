@@ -81,6 +81,7 @@ export type Task = {
   priority: TaskPriority;
   taskType: TaskType;
   dueDate: Date | undefined;
+  originalDueDate?: Date;
   createdAt: Date;
   actualStartDate?: Date;
   completedAt?: Date;
@@ -99,6 +100,8 @@ export type Task = {
   storyPoints?: number;
   sprint?: string;
   extensionRequest?: ExtensionRequest;
+  reworkCount?: number;
+  score?: number;
 };
 
 export type Notification = {
