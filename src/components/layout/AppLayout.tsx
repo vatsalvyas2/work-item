@@ -132,23 +132,24 @@ function UserSwitcher() {
 export function AppLayout({ children }: { children: React.ReactNode }) {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const router = useRouter();
+    const { currentUser } = useUser();
     
     useEffect(() => {
-        setNotifications(database.getNotifications());
-    }, []);
+        setNotifications(database.getNotifications().filter(n => !n.recipient || n.recipient === currentUser.name));
+    }, [currentUser]);
 
     const handleNotificationClick = (notification: Notification) => {
         if(notification.taskId) {
             router.push(`/tasks/${notification.taskId}`);
         }
         const updatedNotifications = database.markNotificationsAsRead([notification.id]);
-        setNotifications(updatedNotifications);
+        setNotifications(updatedNotifications.filter(n => !n.recipient || n.recipient === currentUser.name));
     };
 
     const handleMarkAllAsRead = () => {
         const unreadIds = notifications.filter(n => !n.isRead).map(n => n.id);
         const updatedNotifications = database.markNotificationsAsRead(unreadIds);
-        setNotifications(updatedNotifications);
+        setNotifications(updatedNotifications.filter(n => !n.recipient || n.recipient === currentUser.name));
     };
 
     const pathname = usePathname();

@@ -106,6 +106,7 @@ export type Notification = {
     createdAt: Date;
     isRead: boolean;
     taskId?: string; // Optional link to a task
+    recipient?: string; // Optional: specify who the notification is for
 };
 
 export type FilterStatus = TaskStatus | 'all';

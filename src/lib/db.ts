@@ -8,15 +8,13 @@ let db: AppDatabase = {
         {
           id: "task-1",
           title: "Set up the project structure",
-          taskType: "Task",
+          status: "Done",
           description: "Define the folder structure and install base dependencies.",
           priority: "high",
-          status: "Done",
           dueDate: new Date("2024-08-01T17:00:00"),
           createdAt: new Date("2024-07-25"),
           completedAt: new Date("2024-07-28"),
           reviewRequired: false,
-          isCritical: true,
           timeline: [{id: "t1-1", timestamp: new Date(), action: "Task Created", user: "Admin"}],
           subtasks: [],
           comments: [],
@@ -27,18 +25,15 @@ let db: AppDatabase = {
         {
           id: "task-2",
           title: "Create the main UI components",
-          taskType: "Story",
+          status: "Done",
           description: "Develop React components for the main layout, header, and footer.",
           priority: "high",
-          status: "Done",
           dependsOn: ["task-1"],
           dueDate: new Date("2024-08-05T09:00:00"),
           createdAt: new Date("2024-07-26"),
           completedAt: new Date("2024-08-02"),
           actualStartDate: new Date("2024-07-28"),
-          duration: 40,
           reviewRequired: true,
-          isCritical: false,
           assignee: "Alex",
           reviewer: "Bob",
           timeline: [{id: "t2-1", timestamp: new Date(), action: "Task Created", user: "Admin"}],
@@ -52,15 +47,13 @@ let db: AppDatabase = {
         {
           id: "task-3",
           title: "Implement task state management",
-          taskType: "Task",
+          status: "In Progress",
           description: "Use React hooks like useState and useReducer for state.",
           priority: "medium",
-          status: "In Progress",
           dependsOn: ["task-2"],
           dueDate: new Date("2024-08-10T14:00:00"),
           createdAt: new Date("2024-07-27"),
           reviewRequired: false,
-          isCritical: false,
           timeline: [{id: "t3-1", timestamp: new Date(), action: "Task Created", user: "Admin"}],
           subtasks: [],
           comments: [],
@@ -80,8 +73,22 @@ let db: AppDatabase = {
 export const database = {
   getTasks: () => db.tasks,
   getTask: (id: string) => db.tasks.find(t => t.id === id),
-  addTask: (task: Task) => {
-    db.tasks.unshift(task);
+  addTask: (task: Omit<Task, 'id' | 'createdAt' | 'status' | 'timeline' | 'subtasks' | 'comments'>) => {
+     const isBlocked = task.dependsOn && task.dependsOn.length > 0 && task.dependsOn.some(depId => {
+        const dependency = database.getTask(depId);
+        return dependency && dependency.status !== 'Done';
+    });
+
+    const newTask: Task = {
+      ...task,
+      id: `task-${Date.now()}`,
+      status: isBlocked ? 'Blocked' : 'To Do',
+      createdAt: new Date(),
+      timeline: [{ id: `tl-${Date.now()}`, timestamp: new Date(), action: "Work Item Created", user: task.reporter || 'System' }],
+      subtasks: [],
+      comments: [],
+    };
+    db.tasks.unshift(newTask);
     return db.tasks;
   },
   updateTask: (id: string, updatedTaskData: Partial<Task>) => {
@@ -110,7 +117,7 @@ export const database = {
       isRead: false,
     };
     // Avoid adding duplicate notifications for the same overdue task
-    if (notification.taskId) {
+    if (notification.taskId && notification.message.includes('is overdue')) {
         const existing = db.notifications.find(n => n.taskId === notification.taskId && n.message.includes('is overdue'));
         if (existing) return db.notifications;
     }

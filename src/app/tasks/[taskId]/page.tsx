@@ -121,6 +121,14 @@ export default function TaskDetailsPage() {
         updatedTaskData.completedAt = new Date();
     }
     
+    if (newStatus === 'Under Review') {
+        database.addNotification({
+            message: `Work Item "${task.title}" is ready for review.`,
+            taskId: task.id,
+            recipient: task.reporter,
+        });
+    }
+
     const updatedTask = database.updateTask(task.id, updatedTaskData);
     setTask(updatedTask);
 
@@ -210,6 +218,12 @@ export default function TaskDetailsPage() {
       user: currentUser.name,
       details: `New due date: ${format(combinedDueDate, 'PP p')}. Reason: ${extensionReason}`
     };
+
+    database.addNotification({
+        message: `${currentUser.name} requested an extension for "${task.title}".`,
+        taskId: task.id,
+        recipient: task.reporter,
+    });
 
     const updatedTask = database.updateTask(task.id, { extensionRequest, timeline: [...task.timeline, timelineEntry] });
     setTask(updatedTask);

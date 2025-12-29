@@ -22,8 +22,8 @@ export default function Home() {
   useEffect(() => {
     setTasks(database.getTasks());
     setCollections(database.getCollections());
-    setNotifications(database.getNotifications());
-  }, []);
+    setNotifications(database.getNotifications().filter(n => !n.recipient || n.recipient === currentUser.name));
+  }, [currentUser]);
 
   // Effect to check for overdue tasks and create notifications
   useEffect(() => {
@@ -38,6 +38,7 @@ export default function Home() {
             database.addNotification({
               message: `Work Item "${task.title}" is overdue.`,
               taskId: task.id,
+              recipient: task.assignee
             });
             hasNewNotifications = true;
         }
@@ -45,9 +46,9 @@ export default function Home() {
     });
 
     if (hasNewNotifications) {
-        setNotifications(database.getNotifications());
+        setNotifications(database.getNotifications().filter(n => !n.recipient || n.recipient === currentUser.name));
     }
-  }, [tasks, notifications]);
+  }, [tasks, notifications, currentUser.name]);
 
   const router = useRouter();
 
@@ -70,23 +71,8 @@ export default function Home() {
 
   const addTask = (task: Omit<Task, "id" | "status" | "createdAt" | "timeline" | "subtasks" | "comments" >) => {
     
-    const isBlocked = task.dependsOn && task.dependsOn.length > 0 && task.dependsOn.some(depId => {
-        const dependency = database.getTask(depId);
-        return dependency && dependency.status !== 'Done';
-    });
-
-    const newTask: Task = {
-      ...task,
-      id: `task-${Date.now()}`,
-      status: isBlocked ? 'Blocked' : 'To Do',
-      createdAt: new Date(),
-      timeline: [{ id: `tl-${Date.now()}`, timestamp: new Date(), action: "Work Item Created", user: currentUser.name }],
-      subtasks: [],
-      comments: [],
-      reporter: currentUser.name,
-    };
-    const updatedTasks = database.addTask(newTask);
-    setTasks([...updatedTasks]);
+    database.addTask(task)
+    setTasks(database.getTasks());
   };
   
   const handleSelectTask = (task: Task) => {
@@ -98,13 +84,13 @@ export default function Home() {
         router.push(`/tasks/${notification.taskId}`);
       }
       const updatedNotifications = database.markNotificationsAsRead([notification.id]);
-      setNotifications(updatedNotifications);
+      setNotifications(updatedNotifications.filter(n => !n.recipient || n.recipient === currentUser.name));
   }
 
   const handleMarkAllAsRead = () => {
     const unreadIds = notifications.filter(n => !n.isRead).map(n => n.id);
     const updatedNotifications = database.markNotificationsAsRead(unreadIds);
-    setNotifications(updatedNotifications);
+    setNotifications(updatedNotifications.filter(n => !n.recipient || n.recipient === currentUser.name));
   }
 
   const filteredAndSortedTasks = useMemo(() => {
