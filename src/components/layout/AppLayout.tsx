@@ -21,7 +21,7 @@ import { Button } from '../ui/button';
 function TasksSubMenu() {
     const pathname = usePathname();
     const { open } = useSidebar();
-    const isTasksActive = pathname.startsWith('/tasks');
+    const isTasksActive = pathname.startsWith('/tasks') || pathname.startsWith('/collections');
 
     return (
         <Collapsible defaultOpen={isTasksActive}>
@@ -29,7 +29,7 @@ function TasksSubMenu() {
                 <SidebarMenuButton 
                     variant="ghost" 
                     className="w-full justify-start"
-                    isActive={isTasksActive && !pathname.startsWith('/tasks/')}
+                    isActive={isTasksActive}
                 >
                     <List />
                     <span>Work Item</span>
