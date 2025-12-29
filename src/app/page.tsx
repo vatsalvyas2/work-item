@@ -9,20 +9,20 @@ import { FilterControls } from "@/components/work-item/FilterControls";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { database } from "@/lib/db";
 import { cn } from "@/lib/utils";
+import { useUser } from "@/contexts/UserContext";
 
 
 export default function Home() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [epics, setEpics] = useState<Collection[]>([]);
+  const { currentUser } = useUser();
 
 
   useEffect(() => {
     setTasks(database.getTasks());
     setCollections(database.getCollections());
     setNotifications(database.getNotifications());
-    setEpics(database.getCollections());
   }, []);
 
   // Effect to check for overdue tasks and create notifications
@@ -66,7 +66,6 @@ export default function Home() {
     };
     const updatedCollections = database.addCollection(newCollection);
     setCollections([...updatedCollections]);
-    setEpics([...updatedCollections]);
   };
 
   const addTask = (task: Omit<Task, "id" | "status" | "createdAt" | "timeline" | "subtasks" | "comments" >) => {
@@ -81,10 +80,10 @@ export default function Home() {
       id: `task-${Date.now()}`,
       status: isBlocked ? 'Blocked' : 'To Do',
       createdAt: new Date(),
-      timeline: [{ id: `tl-${Date.now()}`, timestamp: new Date(), action: "Work Item Created", user: "System" }],
+      timeline: [{ id: `tl-${Date.now()}`, timestamp: new Date(), action: "Work Item Created", user: currentUser.name }],
       subtasks: [],
       comments: [],
-      reporter: "Current User", // Placeholder
+      reporter: currentUser.name,
     };
     const updatedTasks = database.addTask(newTask);
     setTasks([...updatedTasks]);
@@ -176,13 +175,15 @@ export default function Home() {
 
   return (
     <div className="space-y-8">
-        <section>
-          <TaskForm 
-            onTaskSubmit={addTask} 
-            collections={collections}
-            tasks={tasks}
-          />
-        </section>
+        {currentUser.role === 'reporter' && (
+          <section>
+            <TaskForm 
+              onTaskSubmit={addTask} 
+              collections={collections}
+              tasks={tasks}
+            />
+          </section>
+        )}
 
         <section>
             <Card>

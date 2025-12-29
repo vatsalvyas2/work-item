@@ -6,9 +6,11 @@ import { CollectionList } from '@/components/work-item/CollectionList';
 import { database } from '@/lib/db';
 import { Collection } from '@/lib/types';
 import { CollectionForm } from '@/components/work-item/CollectionForm';
+import { useUser } from '@/contexts/UserContext';
 
 export default function CollectionsPage() {
     const [collections, setCollections] = useState<Collection[]>([]);
+    const { currentUser } = useUser();
 
     useEffect(() => {
         setCollections(database.getCollections());
@@ -26,9 +28,11 @@ export default function CollectionsPage() {
 
     return (
         <div className="space-y-8">
-            <section>
-                <CollectionForm onCollectionSubmit={addCollection} />
-            </section>
+            {currentUser.role === 'reporter' && (
+              <section>
+                  <CollectionForm onCollectionSubmit={addCollection} />
+              </section>
+            )}
             <section>
                 <CollectionList collections={collections} />
             </section>

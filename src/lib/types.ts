@@ -1,4 +1,10 @@
 
+export type UserRole = 'reporter' | 'assignee';
+
+export type User = {
+    name: string;
+    role: UserRole;
+}
 
 export type TaskStatus =
   | 'To Do'
@@ -9,7 +15,6 @@ export type TaskStatus =
   | 'Cancelled'
   | 'Blocked';
 
-export type TaskType = 'Story' | 'Task' | 'Bug';
 export type TaskPriority = 'low' | 'medium' | 'high';
 
 export type TimelineEntry = {
@@ -89,7 +94,7 @@ export type Task = {
   parentId?: string; // Link to Collection
   subtasks: Subtask[];
   labels?: string[];
-  dependsOn?: string[]; // NEW: IDs of tasks that must be completed first
+  dependsOn?: string[];
   storyPoints?: number;
   sprint?: string;
   extensionRequest?: ExtensionRequest;
@@ -112,7 +117,3 @@ export type AppDatabase = {
   collections: Collection[];
   notifications: Notification[];
 };
-
-    
-
-      

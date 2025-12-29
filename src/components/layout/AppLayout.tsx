@@ -5,13 +5,17 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { SidebarProvider, Sidebar, SidebarTrigger, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarInset, SidebarMenuSub, SidebarMenuSubItem, SidebarMenuSubButton, useSidebar, SidebarRail } from '@/components/ui/sidebar';
-import { LayoutDashboard, List, BarChart3, Settings, Calendar, BookOpen, ChevronLeft } from 'lucide-react';
+import { LayoutDashboard, List, BarChart3, Settings, Calendar, BookOpen, ChevronLeft, User, ChevronsUpDown } from 'lucide-react';
 import { NotificationBell } from '../work-item/NotificationBell';
 import { database } from '@/lib/db';
-import { Notification } from '@/lib/types';
+import { Notification, UserRole } from '@/lib/types';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useUser } from '@/contexts/UserContext';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
+import { Check } from 'lucide-react';
 import { Button } from '../ui/button';
 
 function TasksSubMenu() {
@@ -65,6 +69,62 @@ function AppSidebarHeader() {
                 <ChevronLeft />
             </SidebarTrigger>
         </div>
+    );
+}
+
+function UserSwitcher() {
+    const { users, currentUser, setCurrentUser } = useUser();
+    const [open, setOpen] = useState(false);
+
+    return (
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                <Button
+                    variant="ghost"
+                    role="combobox"
+                    aria-expanded={open}
+                    className="w-full justify-start"
+                >
+                    <User className="mr-2 h-4 w-4" />
+                    <div className="flex flex-col items-start">
+                      <span className="text-sm font-medium">{currentUser.name}</span>
+                      <span className="text-xs text-muted-foreground capitalize">{currentUser.role}</span>
+                    </div>
+                    <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                <Command>
+                    <CommandInput placeholder="Select user..." />
+                    <CommandList>
+                        <CommandEmpty>No user found.</CommandEmpty>
+                        <CommandGroup>
+                            {users.map((user) => (
+                                <CommandItem
+                                    key={user.name}
+                                    value={user.name}
+                                    onSelect={(currentValue) => {
+                                        const selectedUser = users.find(u => u.name.toLowerCase() === currentValue.toLowerCase());
+                                        if (selectedUser) {
+                                            setCurrentUser(selectedUser);
+                                        }
+                                        setOpen(false);
+                                    }}
+                                >
+                                    <Check
+                                        className={cn(
+                                            "mr-2 h-4 w-4",
+                                            currentUser.name === user.name ? "opacity-100" : "opacity-0"
+                                        )}
+                                    />
+                                    {user.name}
+                                </CommandItem>
+                            ))}
+                        </CommandGroup>
+                    </CommandList>
+                </Command>
+            </PopoverContent>
+        </Popover>
     );
 }
 
@@ -136,7 +196,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                             </SidebarMenuItem>
                         </SidebarMenu>
                     </div>
-                    <div className="p-4 border-t">
+                    <div className="p-4 border-t space-y-2">
+                        <UserSwitcher />
                         <SidebarMenu>
                             <SidebarMenuItem>
                                 <SidebarMenuButton href="/settings" isActive={pathname === '/settings'} tooltip="Settings">

@@ -24,12 +24,14 @@ import { Calendar } from '@/components/ui/calendar';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useUser } from '@/contexts/UserContext';
 
 
 export default function TaskDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const taskId = params.taskId as string;
+  const { currentUser } = useUser();
   
   const [task, setTask] = useState<Task | null>(null);
   const [collection, setCollection] = useState<Collection | null>(null);
@@ -45,12 +47,6 @@ export default function TaskDetailsPage() {
 
   const [isExtensionDialogOpen, setIsExtensionDialogOpen] = useState(false);
   const [extensionReason, setExtensionReason] = useState('');
-
-
-  // These would be based on logged in user
-  const isAssignee = true; 
-  const isReviewer = true;
-  const isReporter = true; // Assuming current user is reporter for extension flow
 
   useEffect(() => {
     const allTasks = database.getTasks();
@@ -92,9 +88,8 @@ export default function TaskDetailsPage() {
     return new Date() > task.dueDate && task.status !== 'Done' && task.status !== 'Cancelled';
   }, [task]);
 
-
   if (!task) {
-    return <div>Loading...</div>; // Or a proper skeleton loader
+    return <div>Loading...</div>;
   }
   
   const handleStatusChange = (newStatus: TaskStatus, details?: string, newDueDate?: Date) => {
@@ -109,7 +104,7 @@ export default function TaskDetailsPage() {
         id: `tl-${Date.now()}`,
         timestamp: new Date(),
         action: `Status changed to ${newStatus}`,
-        user: 'Current User',
+        user: currentUser.name,
         details: timelineDetails
     };
 
@@ -162,7 +157,7 @@ export default function TaskDetailsPage() {
         id: `c-${Date.now()}`,
         timestamp: new Date(),
         text: comment,
-        user: 'Current User' // placeholder
+        user: currentUser.name
     }
     const updatedTask = database.updateTask(task.id, {...task, comments: [...task.comments, newComment]});
     setTask(updatedTask);
@@ -212,7 +207,7 @@ export default function TaskDetailsPage() {
       id: `tl-${Date.now()}`,
       timestamp: new Date(),
       action: 'Extension Requested',
-      user: 'Current User (Assignee)',
+      user: currentUser.name,
       details: `New due date: ${format(combinedDueDate, 'PP p')}. Reason: ${extensionReason}`
     };
 
@@ -233,7 +228,7 @@ export default function TaskDetailsPage() {
         id: `tl-${Date.now()}`,
         timestamp: new Date(),
         action,
-        user: 'Current User (Reporter)',
+        user: currentUser.name,
         details
     };
 
@@ -254,6 +249,9 @@ export default function TaskDetailsPage() {
   const renderTaskActions = () => {
       if(!task) return null;
 
+      const isAssignee = currentUser.name === task.assignee;
+      const isReporter = currentUser.role === 'reporter';
+      
       const baseActions = (
         <div className="flex gap-2">
             <Button variant="outline" onClick={() => handleStatusChange('On Hold')}><Pause className="mr-2"/> On Hold</Button>
@@ -265,27 +263,27 @@ export default function TaskDetailsPage() {
           case 'To Do':
               return <div className="flex gap-2">
                 {isAssignee && !task.extensionRequest && <Button variant="outline" onClick={() => setIsExtensionDialogOpen(true)}><Clock className="mr-2"/> Request Extension</Button>}
-                <Button onClick={() => handleStatusChange('In Progress')} disabled={isBlocked}><Play className="mr-2"/> Start Work Item</Button>
-                {baseActions}
+                {isAssignee && <Button onClick={() => handleStatusChange('In Progress')} disabled={isBlocked}><Play className="mr-2"/> Start Work Item</Button>}
+                {isAssignee && baseActions}
               </div>
           case 'Blocked':
               return <div className="flex gap-2">
                 <Button disabled><Play className="mr-2"/> Start Work Item</Button>
-                {baseActions}
+                {isAssignee && baseActions}
               </div>
           case 'In Progress':
               return <div className="flex gap-2">
                   {task.reviewRequired && isAssignee && <Button onClick={() => handleStatusChange('Under Review')}>Send for Review</Button>}
-                  {!task.reviewRequired && <Button onClick={() => handleStatusChange('Done')}><Check className="mr-2"/> Mark as Done</Button>}
-                  {baseActions}
+                  {!task.reviewRequired && isAssignee && <Button onClick={() => handleStatusChange('Done')}><Check className="mr-2"/> Mark as Done</Button>}
+                  {isAssignee && baseActions}
               </div>
           case 'On Hold':
              return <div className="flex gap-2">
-                <Button onClick={() => handleStatusChange('In Progress')}><Play className="mr-2"/> Resume</Button>
-                <Button variant="destructive" onClick={() => handleStatusChange('Cancelled')}><Ban className="mr-2"/> Cancel</Button>
+                {isAssignee && <Button onClick={() => handleStatusChange('In Progress')}><Play className="mr-2"/> Resume</Button>}
+                {isAssignee && <Button variant="destructive" onClick={() => handleStatusChange('Cancelled')}><Ban className="mr-2"/> Cancel</Button>}
             </div>
           case 'Under Review':
-              if (isReviewer) {
+              if (isReporter) {
                   return (
                       <div className="flex gap-2">
                           <Button variant="outline" onClick={() => setIsReworkDialogOpen(true)}><X className="mr-2"/> Rework</Button>
@@ -313,7 +311,6 @@ export default function TaskDetailsPage() {
                     {collection && <p className="text-sm text-muted-foreground">{collection.project} / {task.id.toUpperCase()}</p>}
                     <h1 className="text-3xl font-bold tracking-tight flex items-center gap-4">
                         {task.title}
-                        {task.isCritical && <Badge variant="destructive"><ShieldAlert className="mr-1 h-3 w-3" /> Critical</Badge>}
                     </h1>
                 </div>
                 <div className="flex items-center gap-2 mt-2">
@@ -334,7 +331,7 @@ export default function TaskDetailsPage() {
                     </Alert>
                 )}
 
-                {task.extensionRequest?.status === 'pending' && isReporter && (
+                {task.extensionRequest?.status === 'pending' && currentUser.role === 'reporter' && (
                     <Alert variant="default" className="border-yellow-400 bg-yellow-50">
                         <Clock className="h-4 w-4 !text-yellow-600" />
                         <AlertTitle className="text-yellow-800">Extension Request Pending</AlertTitle>

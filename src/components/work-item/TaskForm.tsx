@@ -48,6 +48,7 @@ import { ToggleGroup, ToggleGroupItem } from "../ui/toggle-group";
 import { createTaskFromVoice } from "@/ai/flows/create-task-flow";
 import { transcribeAudio } from "@/ai/flows/transcribe-audio-flow";
 import { Label } from "@/components/ui/label";
+import { useUser } from "@/contexts/UserContext";
 
 
 const monthlyWeekdaySchema = z.object({
@@ -87,7 +88,6 @@ const formSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters."),
   description: z.string().optional(),
   dueDate: z.string().optional(),
-  dueTime: z.string().optional(),
   priority: z.enum(["low", "medium", "high"]),
   reviewRequired: z.boolean().default(false),
   reviewer: z.string().optional(),
@@ -124,7 +124,7 @@ const WEEK_ORDER: ('First' | 'Second' | 'Third' | 'Fourth' | 'Last')[] = ['First
 
 
 interface TaskFormProps {
-  onTaskSubmit: (data: Omit<Task, "id" | "status" | "createdAt" | "timeline" | "subtasks" | "comments" | "taskType" | "isCritical">) => void;
+  onTaskSubmit: (data: Omit<Task, "id" | "status" | "createdAt" | "timeline" | "subtasks" | "comments" >) => void;
   collections: Collection[];
   tasks: Task[];
 }
@@ -137,6 +137,7 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
   const [transcript, setTranscript] = useState('');
   const [isMicSupported, setIsMicSupported] = useState(true);
   const [recordingTime, setRecordingTime] = useState(0);
+  const { currentUser } = useUser();
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -176,12 +177,15 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
       parentId: "none",
       dependsOn: [],
       assignee: "",
-      reporter: "Current User",
+      reporter: currentUser.name,
       requester: "",
       dueDate: "",
-      dueTime: "",
     },
   });
+  
+  useEffect(() => {
+    form.setValue('reporter', currentUser.name);
+  }, [currentUser, form]);
 
   const { fields: monthlyWeekdayFields, append: appendMonthlyWeekday, remove: removeMonthlyWeekday } = useFieldArray({
       control: form.control,
@@ -211,7 +215,6 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
       if (result.reporter) form.setValue("reporter", result.reporter);
       if (result.requester) form.setValue("requester", result.requester);
       if (result.dueDate) form.setValue("dueDate", result.dueDate);
-      if (result.dueTime) form.setValue("dueTime", result.dueTime);
       if (result.reviewRequired) form.setValue("reviewRequired", result.reviewRequired);
       if (result.reviewer) form.setValue("reviewer", result.reviewer);
       if (result.parentId) form.setValue("parentId", result.parentId);
@@ -355,11 +358,7 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
 
     if(data.dueDate) {
         finalDueDate = new Date(data.dueDate);
-    } else if (data.isRecurring && data.dueTime) {
-        const [hours, minutes] = data.dueTime.split(':').map(Number);
-        finalDueDate = new Date(); 
-        finalDueDate.setHours(hours, minutes, 0, 0);
-    }
+    } 
 
     const recurrencePayload = data.isRecurring && data.recurrence ? {
         ...data.recurrence,
@@ -519,6 +518,19 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
                   <FormField
                       control={form.control}
+                      name="dueDate"
+                      render={({ field }) => (
+                          <FormItem>
+                          <FormLabel>Due Date & Time</FormLabel>
+                          <FormControl>
+                              <Input type="datetime-local" {...field} value={field.value || ''} />
+                          </FormControl>
+                          <FormMessage />
+                          </FormItem>
+                      )}
+                    />
+                  <FormField
+                      control={form.control}
                       name="priority"
                       render={({ field }) => (
                       <FormItem>
@@ -539,19 +551,6 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
                       </FormItem>
                       )}
                   />
-                  <FormField
-                      control={form.control}
-                      name="dueDate"
-                      render={({ field }) => (
-                          <FormItem>
-                          <FormLabel>Due Date & Time</FormLabel>
-                          <FormControl>
-                              <Input type="datetime-local" {...field} value={field.value || ''} />
-                          </FormControl>
-                          <FormMessage />
-                          </FormItem>
-                      )}
-                    />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -724,12 +723,18 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
                             />
                             <FormField
                                 control={form.control}
-                                name="dueTime"
+                                name="dueDate"
                                 render={({ field }) => (
                                     <FormItem>
                                     <FormLabel>Due Time</FormLabel>
                                     <FormControl>
-                                        <Input type="time" {...field} value={field.value || ''} />
+                                        <Input type="time" {...field} value={field.value ? field.value.split('T')[1] : ''} 
+                                          onChange={(e) => {
+                                            const time = e.target.value;
+                                            const currentDate = field.value ? field.value.split('T')[0] : new Date().toISOString().split('T')[0];
+                                            field.onChange(`${currentDate}T${time}`);
+                                          }}
+                                        />
                                     </FormControl>
                                     <FormMessage />
                                     </FormItem>
