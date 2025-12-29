@@ -40,7 +40,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import type { Task, Collection } from "@/lib/types";
+import type { Task, Collection, TaskType } from "@/lib/types";
 import { Switch } from "@/components/ui/switch";
 import { useState, useRef, useEffect } from "react";
 import { Textarea } from "../ui/textarea";
@@ -87,6 +87,7 @@ const recurrenceSchema = z.object({
 const formSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters."),
   description: z.string().optional(),
+  taskType: z.enum(['Story', 'Task', 'Bug']),
   dueDate: z.string().optional(),
   priority: z.enum(["low", "medium", "high"]),
   reviewRequired: z.boolean().default(false),
@@ -156,6 +157,7 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
     defaultValues: {
       title: "",
       description: "",
+      taskType: "Task",
       priority: "medium",
       reviewRequired: false,
       reviewer: "",
@@ -376,6 +378,7 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
 
     onTaskSubmit({
       ...data,
+      taskType: data.taskType as TaskType,
       parentId: data.parentId === 'none' ? undefined : data.parentId,
       dueDate: finalDueDate,
       recurrence: recurrencePayload,
@@ -443,11 +446,34 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
               </CardContent>
             )}
           <CardContent className="space-y-6 pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <FormField
+                control={form.control}
+                name="taskType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Type</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Task">Task</SelectItem>
+                        <SelectItem value="Story">Story</SelectItem>
+                        <SelectItem value="Bug">Bug</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <FormField
                 control={form.control}
                 name="title"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="md:col-span-3">
                     <FormLabel>Title</FormLabel>
                     <FormControl>
                       <Input placeholder={"e.g., Finish the report"} {...field} />
@@ -456,6 +482,7 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
                   </FormItem>
                 )}
               />
+            </div>
             
              <FormField
               control={form.control}
@@ -957,5 +984,3 @@ export function TaskForm({ onTaskSubmit, collections, tasks }: TaskFormProps) {
     </>
   );
 }
-
-    

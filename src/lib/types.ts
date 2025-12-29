@@ -1,4 +1,5 @@
 
+
 export type UserRole = 'reporter' | 'assignee';
 
 export type User = {
@@ -16,6 +17,8 @@ export type TaskStatus =
   | 'Blocked';
 
 export type TaskPriority = 'low' | 'medium' | 'high';
+
+export type TaskType = 'Story' | 'Task' | 'Bug';
 
 export type TimelineEntry = {
   id: string;
@@ -79,6 +82,7 @@ export type Task = {
   description: string;
   status: TaskStatus;
   priority: TaskPriority;
+  taskType: TaskType;
   dueDate: Date | undefined;
   createdAt: Date;
   actualStartDate?: Date;
